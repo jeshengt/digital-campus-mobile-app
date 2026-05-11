@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../features/admin/screens/admin_dashboard_screen.dart';
 import '../../features/auth/screens/email_verification_screen.dart';
 import '../../features/auth/screens/firebase_setup_screen.dart';
+import '../../features/auth/screens/forgot_password_screen.dart';
 import '../../features/auth/screens/register_screen.dart';
 import '../../features/auth/screens/role_gateway_screen.dart';
 import '../../features/auth/screens/sign_in_screen.dart';
@@ -20,6 +21,7 @@ class AppRoutes {
   static const splash = '/';
   static const signIn = '/sign-in';
   static const register = '/register';
+  static const forgotPassword = '/forgot-password';
   static const emailVerification = '/email-verification';
   static const roleGateway = '/role-gateway';
   static const profile = '/profile';
@@ -41,6 +43,7 @@ class AppRoutes {
           : FirebaseSetupScreen(errorMessage: firebaseErrorMessage),
       signIn: (_) => const SignInScreen(),
       register: (_) => const RegisterScreen(),
+      forgotPassword: (_) => const ForgotPasswordScreen(),
       emailVerification: (_) => const EmailVerificationScreen(),
       roleGateway: (_) => const RoleGatewayScreen(),
       profile: (_) => const ProfileScreen(),

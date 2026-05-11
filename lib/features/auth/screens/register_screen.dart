@@ -82,7 +82,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return AuthLayout(
       title: 'Create your account',
       subtitle:
-          'Your smart campus experience starts here.',
+          'Smart campus experience starts here.',
       child: Form(
         key: _formKey,
         child: Column(

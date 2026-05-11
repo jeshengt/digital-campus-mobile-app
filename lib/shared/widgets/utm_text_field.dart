@@ -11,6 +11,7 @@ class UtmTextField extends StatelessWidget {
     this.isRequired = true,
     this.icon,
     this.autofillHints,
+    this.validator,
   });
 
   final TextEditingController controller;
@@ -21,6 +22,7 @@ class UtmTextField extends StatelessWidget {
   final bool isRequired;
   final IconData? icon;
   final Iterable<String>? autofillHints;
+  final String? Function(String?)? validator;
 
   @override
   Widget build(BuildContext context) {
@@ -34,17 +36,19 @@ class UtmTextField extends StatelessWidget {
         labelText: label,
         prefixIcon: icon == null ? null : Icon(icon),
       ),
-      validator: (value) {
-        if (!isRequired) {
-          return null;
-        }
+      validator:
+          validator ??
+          (value) {
+            if (!isRequired) {
+              return null;
+            }
 
-        if (value == null || value.trim().isEmpty) {
-          return '$label is required';
-        }
+            if (value == null || value.trim().isEmpty) {
+              return '$label is required';
+            }
 
-        return null;
-      },
+            return null;
+          },
     );
   }
 }

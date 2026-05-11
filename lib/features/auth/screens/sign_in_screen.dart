@@ -18,7 +18,7 @@ class _SignInScreenState extends State<SignInScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
+  late final AuthService _authService = AuthService();
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -90,6 +90,18 @@ class _SignInScreenState extends State<SignInScreen> {
               obscureText: true,
               textInputAction: TextInputAction.done,
               autofillHints: const [AutofillHints.password],
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: _isLoading
+                    ? null
+                    : () => Navigator.pushNamed(
+                        context,
+                        AppRoutes.forgotPassword,
+                      ),
+                child: const Text('Forgot password?'),
+              ),
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: AppDimensions.spacingMedium),
