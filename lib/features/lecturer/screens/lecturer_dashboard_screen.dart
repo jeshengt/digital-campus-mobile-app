@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/routes/app_routes.dart';
 import '../../../shared/layouts/role_dashboard_layout.dart';
 import '../../../shared/widgets/utm_info_card.dart';
 
@@ -8,7 +9,7 @@ class LecturerDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const RoleDashboardLayout(
+    return RoleDashboardLayout(
       title: 'Lecturer Dashboard',
       subtitle: 'Attendance sessions, live lists, and local report exports.',
       cards: [
@@ -16,15 +17,19 @@ class LecturerDashboardScreen extends StatelessWidget {
           icon: Icons.qr_code_2_rounded,
           title: 'Generate attendance QR',
           statusLabel: 'Secure',
-          description: 'Time-bound QR session setup will be added here.',
+          description: 'Create a time-bound QR with classroom geofence checks.',
+          onTap: () =>
+              Navigator.pushNamed(context, AppRoutes.lecturerCreateAttendance),
         ),
         UtmInfoCard(
-          icon: Icons.location_on_outlined,
-          title: 'Geofence settings',
-          statusLabel: 'Planned',
-          description: 'Session location radius planning is reserved here.',
+          icon: Icons.list_alt_rounded,
+          title: 'Attendance lists',
+          statusLabel: 'Live',
+          description: 'Review students who scanned and passed validation.',
+          onTap: () =>
+              Navigator.pushNamed(context, AppRoutes.lecturerAttendanceList),
         ),
-        UtmInfoCard(
+        const UtmInfoCard(
           icon: Icons.picture_as_pdf_outlined,
           title: 'Local PDF export',
           statusLabel: 'Local',

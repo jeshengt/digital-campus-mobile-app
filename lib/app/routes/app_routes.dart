@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../features/admin/screens/admin_dashboard_screen.dart';
+import '../../features/attendance/screens/lecturer_attendance_list_screen.dart';
+import '../../features/attendance/screens/lecturer_create_session_screen.dart';
+import '../../features/attendance/screens/lecturer_session_qr_screen.dart';
+import '../../features/attendance/screens/student_attendance_history_screen.dart';
+import '../../features/attendance/screens/student_scan_attendance_screen.dart';
 import '../../features/auth/screens/email_verification_screen.dart';
 import '../../features/auth/screens/firebase_setup_screen.dart';
 import '../../features/auth/screens/forgot_password_screen.dart';
@@ -30,6 +35,11 @@ class AppRoutes {
   static const driverDashboard = '/driver';
   static const staffDashboard = '/staff';
   static const adminDashboard = '/admin';
+  static const lecturerCreateAttendance = '/attendance/lecturer/create';
+  static const lecturerAttendanceQr = '/attendance/lecturer/qr';
+  static const lecturerAttendanceList = '/attendance/lecturer/list';
+  static const studentScanAttendance = '/attendance/student/scan';
+  static const studentAttendanceHistory = '/attendance/student/history';
 
   static Map<String, WidgetBuilder> routes({
     required bool isFirebaseReady,
@@ -52,6 +62,11 @@ class AppRoutes {
       driverDashboard: (_) => const DriverDashboardScreen(),
       staffDashboard: (_) => const StaffDashboardScreen(),
       adminDashboard: (_) => const AdminDashboardScreen(),
+      lecturerCreateAttendance: (_) => const LecturerCreateSessionScreen(),
+      lecturerAttendanceQr: (_) => const LecturerSessionQrScreen(),
+      lecturerAttendanceList: (_) => const LecturerAttendanceListScreen(),
+      studentScanAttendance: (_) => const StudentScanAttendanceScreen(),
+      studentAttendanceHistory: (_) => const StudentAttendanceHistoryScreen(),
     };
   }
 }

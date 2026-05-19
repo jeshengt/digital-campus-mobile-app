@@ -11,6 +11,7 @@ class UtmInfoCard extends StatelessWidget {
     required this.description,
     this.statusLabel,
     this.accentColor,
+    this.onTap,
   });
 
   final IconData icon;
@@ -18,16 +19,17 @@ class UtmInfoCard extends StatelessWidget {
   final String description;
   final String? statusLabel;
   final Color? accentColor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final effectiveAccent =
         accentColor ?? Theme.of(context).colorScheme.primary;
 
-    return Semantics(
-      container: true,
-      label: statusLabel == null ? title : '$title, $statusLabel',
-      child: Card(
+    final card = Card(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
         child: Padding(
           padding: const EdgeInsets.all(AppDimensions.spacingMedium),
           child: Column(
@@ -58,6 +60,13 @@ class UtmInfoCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+
+    return Semantics(
+      container: true,
+      button: onTap != null,
+      label: statusLabel == null ? title : '$title, $statusLabel',
+      child: card,
     );
   }
 }

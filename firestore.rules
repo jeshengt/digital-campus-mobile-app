@@ -28,6 +28,22 @@ service cloud.firestore {
       return hasRole('admin');
     }
 
+    function isLecturer() {
+      return hasRole('lecturer');
+    }
+
+    function isStudent() {
+      return hasRole('student');
+    }
+
+    function attendanceSessionPath(sessionId) {
+      return /databases/$(database)/documents/attendanceSessions/$(sessionId);
+    }
+
+    function attendanceSession(sessionId) {
+      return get(attendanceSessionPath(sessionId));
+    }
+
     function validUserRole(role) {
       return role in ['student', 'lecturer', 'driver', 'staff'];
     }
@@ -74,8 +90,159 @@ service cloud.firestore {
 
     function ownsAttendanceSession(sessionId) {
       return signedIn()
-        && exists(/databases/$(database)/documents/attendanceSessions/$(sessionId))
-        && get(/databases/$(database)/documents/attendanceSessions/$(sessionId)).data.lecturerId == request.auth.uid;
+        && exists(attendanceSessionPath(sessionId))
+        && attendanceSession(sessionId).data.lecturerId == request.auth.uid;
+    }
+
+    function ownsCurrentAttendanceSession() {
+      return isLecturer()
+        && resource.data.lecturerId == request.auth.uid;
+    }
+
+    function attendanceSessionKeysAreSafe() {
+      return request.resource.data.keys().hasOnly([
+        'sessionId',
+        'lecturerId',
+        'courseCode',
+        'requiresLocation',
+        'latitude',
+        'longitude',
+        'geofenceRadius',
+        'qrCodeValue',
+        'startTime',
+        'expiryTime',
+        'status',
+        'createdAt'
+      ]);
+    }
+
+    function attendanceSessionValuesAreSafe(sessionId) {
+      return request.resource.data.sessionId == sessionId
+        && request.resource.data.lecturerId is string
+        && request.resource.data.courseCode is string
+        && request.resource.data.requiresLocation is bool
+        && (
+          (
+            request.resource.data.requiresLocation == true
+            && request.resource.data.latitude is number
+            && request.resource.data.latitude >= -90
+            && request.resource.data.latitude <= 90
+            && request.resource.data.longitude is number
+            && request.resource.data.longitude >= -180
+            && request.resource.data.longitude <= 180
+            && request.resource.data.geofenceRadius is number
+            && request.resource.data.geofenceRadius > 0
+          )
+          || (
+            request.resource.data.requiresLocation == false
+            && request.resource.data.latitude == null
+            && request.resource.data.longitude == null
+            && request.resource.data.geofenceRadius == null
+          )
+        )
+        && request.resource.data.qrCodeValue is string
+        && request.resource.data.startTime is timestamp
+        && (
+          request.resource.data.expiryTime == null
+          || (
+            request.resource.data.expiryTime is timestamp
+            && request.resource.data.expiryTime > request.resource.data.startTime
+          )
+        )
+        && request.resource.data.status in ['active', 'closed']
+        && request.resource.data.createdAt is timestamp;
+    }
+
+    function attendanceSessionCreateIsSafe(sessionId) {
+      return attendanceSessionKeysAreSafe()
+        && attendanceSessionValuesAreSafe(sessionId)
+        && (
+          isAdmin()
+          || (isLecturer() && request.resource.data.lecturerId == request.auth.uid)
+        );
+    }
+
+    function attendanceSessionUpdateIsSafe() {
+      let changed = request.resource.data.diff(resource.data).changedKeys();
+      return changed.hasOnly(['status'])
+        && request.resource.data.sessionId == resource.data.sessionId
+        && request.resource.data.lecturerId == resource.data.lecturerId
+        && request.resource.data.qrCodeValue == resource.data.qrCodeValue
+        && request.resource.data.status in ['active', 'closed'];
+    }
+
+    function activeSessionReadableByStudent() {
+      return isStudent()
+        && resource.data.status == 'active'
+        && (
+          resource.data.expiryTime == null
+          || resource.data.expiryTime > request.time
+        );
+    }
+
+    function attendanceRecordKeysAreSafe() {
+      return request.resource.data.keys().hasOnly([
+        'recordId',
+        'sessionId',
+        'courseCode',
+        'studentId',
+        'studentName',
+        'scannedAt',
+        'locationValidated',
+        'latitude',
+        'longitude',
+        'distanceMeters',
+        'status',
+        'remarks'
+      ]);
+    }
+
+    function attendanceRecordCreateIsSafe(recordId) {
+      let session = attendanceSession(request.resource.data.sessionId);
+      return attendanceRecordKeysAreSafe()
+        && request.resource.data.recordId == recordId
+        && recordId == request.resource.data.sessionId + '_' + request.auth.uid
+        && request.resource.data.courseCode is string
+        && request.resource.data.courseCode == session.data.courseCode
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.studentName is string
+        && request.resource.data.scannedAt is timestamp
+        && request.resource.data.locationValidated is bool
+        && (
+          (
+            session.data.requiresLocation != false
+            && request.resource.data.locationValidated == true
+            && request.resource.data.latitude is number
+            && request.resource.data.latitude >= -90
+            && request.resource.data.latitude <= 90
+            && request.resource.data.longitude is number
+            && request.resource.data.longitude >= -180
+            && request.resource.data.longitude <= 180
+            && request.resource.data.distanceMeters is number
+            && request.resource.data.distanceMeters >= 0
+            && request.resource.data.distanceMeters <= session.data.geofenceRadius
+          )
+          || (
+            session.data.requiresLocation == false
+            && request.resource.data.locationValidated == false
+            && request.resource.data.latitude == null
+            && request.resource.data.longitude == null
+            && request.resource.data.distanceMeters == null
+          )
+        )
+        && request.resource.data.status == 'present'
+        && request.resource.data.remarks is string
+        && exists(attendanceSessionPath(request.resource.data.sessionId))
+        && session.data.status == 'active'
+        && (
+          session.data.expiryTime == null
+          || session.data.expiryTime > request.time
+        );
+    }
+
+    function attendanceHistoryCreateIsSafe(uid, recordId) {
+      return uid == request.auth.uid
+        && attendanceRecordCreateIsSafe(recordId);
     }
 
     match /users/{uid} {
@@ -86,27 +253,55 @@ service cloud.firestore {
         && userCreateValuesAreSafe(uid);
       allow update: if isAdmin() || (isOwner(uid) && ownerProfileUpdateIsSafe());
       allow delete: if isAdmin();
+
+      match /attendanceHistory/{recordId} {
+        allow get, list: if isOwner(uid) || isAdmin();
+        allow create: if isStudent()
+          && attendanceHistoryCreateIsSafe(uid, recordId);
+        allow update, delete: if isAdmin();
+      }
+
+      match /lecturerAttendance/{sessionId}/records/{recordId} {
+        allow get, list: if isOwner(uid) || isAdmin();
+        allow create: if isStudent()
+          && uid == attendanceSession(sessionId).data.lecturerId
+          && request.resource.data.sessionId == sessionId
+          && attendanceRecordCreateIsSafe(recordId);
+        allow update, delete: if isAdmin();
+      }
     }
 
     match /attendanceSessions/{sessionId} {
-      allow read: if signedIn();
-      allow create: if (hasRole('lecturer') || isAdmin())
-        && request.resource.data.lecturerId == request.auth.uid;
-      allow update, delete: if isAdmin()
+      allow get, list: if isAdmin()
+        || ownsCurrentAttendanceSession()
+        || activeSessionReadableByStudent();
+      allow create: if attendanceSessionCreateIsSafe(sessionId);
+      allow update: if isAdmin()
         || (
-          hasRole('lecturer')
+          isLecturer()
           && resource.data.lecturerId == request.auth.uid
-          && request.resource.data.lecturerId == resource.data.lecturerId
+          && attendanceSessionUpdateIsSafe()
         );
+      allow delete: if isAdmin();
+
+      match /records/{recordId} {
+        allow get, list: if isAdmin() || ownsAttendanceSession(sessionId);
+        allow create: if isStudent()
+          && request.resource.data.sessionId == sessionId
+          && attendanceRecordCreateIsSafe(recordId);
+        allow update, delete: if isAdmin();
+      }
     }
 
     match /attendanceRecords/{recordId} {
       allow get: if isAdmin()
         || (signedIn() && resource.data.studentId == request.auth.uid)
         || ownsAttendanceSession(resource.data.sessionId);
-      allow list: if isAdmin() || hasRole('lecturer');
-      allow create: if hasRole('student')
-        && request.resource.data.studentId == request.auth.uid;
+      allow list: if isAdmin()
+        || (isStudent() && resource.data.studentId == request.auth.uid)
+        || (isLecturer() && ownsAttendanceSession(resource.data.sessionId));
+      allow create: if isStudent()
+        && attendanceRecordCreateIsSafe(recordId);
       allow update, delete: if isAdmin();
     }
 
