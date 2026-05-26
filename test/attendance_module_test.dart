@@ -9,8 +9,11 @@ import 'package:utmgo/features/attendance/models/attendance_record.dart';
 import 'package:utmgo/features/attendance/models/attendance_session.dart';
 import 'package:utmgo/features/attendance/screens/lecturer_attendance_list_screen.dart';
 import 'package:utmgo/features/attendance/screens/lecturer_create_session_screen.dart';
+import 'package:utmgo/features/attendance/screens/lecturer_session_qr_screen.dart';
 import 'package:utmgo/features/attendance/screens/student_attendance_history_screen.dart';
 import 'package:utmgo/features/attendance/screens/student_scan_attendance_screen.dart';
+import 'package:utmgo/features/attendance/services/attendance_pdf_export_service.dart';
+import 'package:utmgo/features/attendance/services/attendance_qr_export_service.dart';
 import 'package:utmgo/features/attendance/services/attendance_service.dart';
 import 'package:utmgo/features/attendance/utils/attendance_helpers.dart';
 import 'package:utmgo/features/lecturer/screens/lecturer_dashboard_screen.dart';
@@ -80,6 +83,7 @@ void main() {
         courseCode: 'SECJ1013',
         studentId: 'student-1',
         studentName: 'Aina Rahman',
+        studentEmail: 'aina@example.com',
         scannedAt: now,
         locationValidated: true,
         latitude: 1.5583,
@@ -94,6 +98,7 @@ void main() {
       expect(parsed.recordId, 'session-1_student-1');
       expect(parsed.courseCode, 'SECJ1013');
       expect(parsed.studentName, 'Aina Rahman');
+      expect(parsed.studentEmail, 'aina@example.com');
       expect(parsed.locationValidated, isTrue);
       expect(parsed.distanceMeters, 12.5);
       expect(parsed.status, attendanceRecordStatusPresent);
@@ -107,6 +112,7 @@ void main() {
         courseCode: 'SECJ1013',
         studentId: 'student-1',
         studentName: 'Aina Rahman',
+        studentEmail: 'aina@example.com',
         scannedAt: now,
         locationValidated: false,
         latitude: null,
@@ -204,6 +210,76 @@ void main() {
 
       expect(distance, greaterThan(10));
       expect(distance, lessThan(12));
+    });
+  });
+
+  group('Attendance QR export', () {
+    test('formats QR poster metadata', () {
+      final session = _sampleSession(expiryTime: DateTime(2026, 5, 20, 14, 5));
+
+      expect(
+        AttendanceQrPosterGenerator.fileNameFor(session),
+        'utmgo_secj1013_attendance_qr.png',
+      );
+      expect(
+        AttendanceQrPosterGenerator.expiryLabelFor(session),
+        '20/05/2026 14:05',
+      );
+      expect(
+        AttendanceQrPosterGenerator.locationLabelFor(session),
+        'Location required (100m)',
+      );
+      expect(
+        AttendanceQrPosterGenerator.expiryLabelFor(
+          _sampleSession(requiresLocation: false, noExpiry: true),
+        ),
+        'No expiry',
+      );
+    });
+
+    testWidgets('generates QR poster PNG bytes', (tester) async {
+      final bytes = await tester.runAsync(
+        () => const AttendanceQrPosterGenerator().generatePng(
+          session: _sampleSession(requiresLocation: false, noExpiry: true),
+          lecturerName: 'Dr Amina Rahman',
+        ),
+      );
+
+      expect(bytes, isNotNull);
+      expect(bytes!.length, greaterThan(1000));
+      expect(bytes.take(8), [137, 80, 78, 71, 13, 10, 26, 10]);
+    });
+  });
+
+  group('Attendance PDF export', () {
+    test('formats PDF export metadata', () {
+      final session = _sampleSession(expiryTime: DateTime(2026, 5, 20, 14, 5));
+
+      expect(
+        AttendancePdfReportGenerator.fileNameFor(session),
+        'utmgo_secj1013_attendance_list.pdf',
+      );
+      expect(
+        AttendancePdfReportGenerator.expiryLabelFor(session),
+        '20/05/2026 14:05',
+      );
+      expect(
+        AttendancePdfReportGenerator.locationLabelFor(session),
+        'Location required (100m)',
+      );
+    });
+
+    test('generates attendance list PDF bytes', () async {
+      final session = _sampleSession();
+      final bytes = await const AttendancePdfReportGenerator().generatePdf(
+        session: session,
+        records: [_sampleRecord(session)],
+        lecturerName: 'Dr Amina Rahman',
+        generatedAt: DateTime(2026, 5, 20, 14, 5),
+      );
+
+      expect(bytes.length, greaterThan(1000));
+      expect(String.fromCharCodes(bytes.take(4)), '%PDF');
     });
   });
 
@@ -498,14 +574,17 @@ void main() {
         session: session,
         records: [_sampleRecord(session)],
       );
+      final pdfExportService = _FakePdfExportService();
 
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
           onGenerateRoute: (_) => MaterialPageRoute<void>(
             settings: RouteSettings(arguments: session),
-            builder: (_) =>
-                LecturerAttendanceListScreen(attendanceService: service),
+            builder: (_) => LecturerAttendanceListScreen(
+              attendanceService: service,
+              pdfExportService: pdfExportService,
+            ),
           ),
         ),
       );
@@ -514,6 +593,72 @@ void main() {
 
       expect(find.text('1 present'), findsOneWidget);
       expect(find.text('Aina Rahman'), findsOneWidget);
+      expect(find.text('Save as PDF'), findsOneWidget);
+      expect(find.text('Share as PDF'), findsOneWidget);
+    });
+
+    testWidgets('lecturer attendance list shares records as PDF', (
+      tester,
+    ) async {
+      final session = _sampleSession();
+      final record = _sampleRecord(session);
+      final pdfExportService = _FakePdfExportService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          onGenerateRoute: (_) => MaterialPageRoute<void>(
+            settings: RouteSettings(arguments: session),
+            builder: (_) => LecturerAttendanceListScreen(
+              attendanceService: _FakeAttendanceService(
+                session: session,
+                records: [record],
+              ),
+              pdfExportService: pdfExportService,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share as PDF'));
+      await tester.pumpAndSettle();
+
+      expect(pdfExportService.sharedSessionId, session.sessionId);
+      expect(pdfExportService.sharedRecordCount, 1);
+      expect(find.text('Attendance PDF ready to share.'), findsOneWidget);
+    });
+
+    testWidgets('lecturer attendance list saves records as PDF', (
+      tester,
+    ) async {
+      final session = _sampleSession();
+      final record = _sampleRecord(session);
+      final pdfExportService = _FakePdfExportService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          onGenerateRoute: (_) => MaterialPageRoute<void>(
+            settings: RouteSettings(arguments: session),
+            builder: (_) => LecturerAttendanceListScreen(
+              attendanceService: _FakeAttendanceService(
+                session: session,
+                records: [record],
+              ),
+              pdfExportService: pdfExportService,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save as PDF'));
+      await tester.pumpAndSettle();
+
+      expect(pdfExportService.savedSessionId, session.sessionId);
+      expect(pdfExportService.savedRecordCount, 1);
+      expect(find.text('Attendance PDF saved.'), findsOneWidget);
     });
 
     testWidgets('selected active attendance list opens QR from app bar', (
@@ -545,6 +690,93 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('QR route opened'), findsOneWidget);
+    });
+
+    testWidgets('active lecturer QR screen shows share and save actions', (
+      tester,
+    ) async {
+      final session = _sampleSession(requiresLocation: false, noExpiry: true);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          onGenerateRoute: (_) => MaterialPageRoute<void>(
+            settings: RouteSettings(arguments: session),
+            builder: (_) => LecturerSessionQrScreen(
+              attendanceService: _FakeAttendanceService(session: session),
+              qrExportService: _FakeQrExportService(),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView), const Offset(0, -900));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Share QR'), findsOneWidget);
+      expect(find.text('Save QR'), findsOneWidget);
+    });
+
+    testWidgets('expired lecturer QR screen hides share and save actions', (
+      tester,
+    ) async {
+      final session = _sampleSession(isExpired: true);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          onGenerateRoute: (_) => MaterialPageRoute<void>(
+            settings: RouteSettings(arguments: session),
+            builder: (_) => LecturerSessionQrScreen(
+              attendanceService: _FakeAttendanceService(session: session),
+              qrExportService: _FakeQrExportService(),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Share QR'), findsNothing);
+      expect(find.text('Save QR'), findsNothing);
+    });
+
+    testWidgets('lecturer QR screen shares and saves QR poster', (
+      tester,
+    ) async {
+      final session = _sampleSession(requiresLocation: false, noExpiry: true);
+      final exportService = _FakeQrExportService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          onGenerateRoute: (_) => MaterialPageRoute<void>(
+            settings: RouteSettings(arguments: session),
+            builder: (_) => LecturerSessionQrScreen(
+              attendanceService: _FakeAttendanceService(session: session),
+              qrExportService: exportService,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView), const Offset(0, -900));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share QR'));
+      await tester.pumpAndSettle();
+
+      expect(exportService.sharedSessionId, session.sessionId);
+      expect(find.text('QR ready to share.'), findsOneWidget);
+
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save QR'));
+      await tester.pumpAndSettle();
+
+      expect(exportService.savedSessionId, session.sessionId);
+      expect(find.text('Attendance QR saved to gallery.'), findsOneWidget);
     });
 
     testWidgets('student attendance history shows empty state', (tester) async {
@@ -624,6 +856,7 @@ AttendanceRecord _sampleRecord(AttendanceSession session) {
     courseCode: session.courseCode,
     studentId: 'student-1',
     studentName: 'Aina Rahman',
+    studentEmail: 'aina@example.com',
     scannedAt: DateTime.now(),
     locationValidated: session.requiresLocation,
     latitude: session.requiresLocation ? 1.5583 : null,
@@ -721,6 +954,60 @@ class _FakeAttendanceService implements AttendanceService {
   @override
   Stream<List<AttendanceSession>> watchLecturerSessions() {
     return Stream.value(session == null ? [] : [session!]);
+  }
+}
+
+class _FakeQrExportService implements AttendanceQrExportService {
+  String? sharedSessionId;
+  String? savedSessionId;
+
+  @override
+  Future<AttendanceQrExportResult> shareQr({
+    required AttendanceSession session,
+    Rect? sharePositionOrigin,
+  }) async {
+    sharedSessionId = session.sessionId;
+    return const AttendanceQrExportResult(message: 'QR ready to share.');
+  }
+
+  @override
+  Future<AttendanceQrExportResult> saveQrToGallery({
+    required AttendanceSession session,
+  }) async {
+    savedSessionId = session.sessionId;
+    return const AttendanceQrExportResult(
+      message: 'Attendance QR saved to gallery.',
+    );
+  }
+}
+
+class _FakePdfExportService implements AttendancePdfExportService {
+  String? savedSessionId;
+  int? savedRecordCount;
+  String? sharedSessionId;
+  int? sharedRecordCount;
+
+  @override
+  Future<AttendancePdfExportResult> saveAttendanceList({
+    required AttendanceSession session,
+    required List<AttendanceRecord> records,
+  }) async {
+    savedSessionId = session.sessionId;
+    savedRecordCount = records.length;
+    return const AttendancePdfExportResult(message: 'Attendance PDF saved.');
+  }
+
+  @override
+  Future<AttendancePdfExportResult> shareAttendanceList({
+    required AttendanceSession session,
+    required List<AttendanceRecord> records,
+    Rect? sharePositionOrigin,
+  }) async {
+    sharedSessionId = session.sessionId;
+    sharedRecordCount = records.length;
+    return const AttendancePdfExportResult(
+      message: 'Attendance PDF ready to share.',
+    );
   }
 }
 

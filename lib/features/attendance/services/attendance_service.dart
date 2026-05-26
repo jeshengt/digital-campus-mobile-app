@@ -255,12 +255,14 @@ class FirebaseAttendanceService implements AttendanceService {
     final historyDoc = _studentHistory(student.uid).doc(recordId);
 
     final profile = await _profileService.getProfile(student.uid);
+    final studentEmail = student.email ?? profile?.email ?? '';
     final record = AttendanceRecord(
       recordId: recordId,
       sessionId: session.sessionId,
       courseCode: session.courseCode,
       studentId: student.uid,
       studentName: profile?.name ?? student.displayName ?? 'Student',
+      studentEmail: studentEmail,
       scannedAt: DateTime.now(),
       locationValidated: session.requiresLocation,
       latitude: latitude,

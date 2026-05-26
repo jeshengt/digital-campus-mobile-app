@@ -36,12 +36,28 @@ service cloud.firestore {
       return hasRole('student');
     }
 
+    function isDriver() {
+      return hasRole('driver');
+    }
+
+    function isStaff() {
+      return hasRole('staff');
+    }
+
     function attendanceSessionPath(sessionId) {
       return /databases/$(database)/documents/attendanceSessions/$(sessionId);
     }
 
     function attendanceSession(sessionId) {
       return get(attendanceSessionPath(sessionId));
+    }
+
+    function busPath(busId) {
+      return /databases/$(database)/documents/buses/$(busId);
+    }
+
+    function bus(busId) {
+      return get(busPath(busId));
     }
 
     function validUserRole(role) {
@@ -187,6 +203,7 @@ service cloud.firestore {
         'courseCode',
         'studentId',
         'studentName',
+        'studentEmail',
         'scannedAt',
         'locationValidated',
         'latitude',
@@ -206,6 +223,8 @@ service cloud.firestore {
         && request.resource.data.courseCode == session.data.courseCode
         && request.resource.data.studentId == request.auth.uid
         && request.resource.data.studentName is string
+        && request.resource.data.studentEmail is string
+        && request.resource.data.studentEmail == request.auth.token.email
         && request.resource.data.scannedAt is timestamp
         && request.resource.data.locationValidated is bool
         && (
@@ -245,6 +264,427 @@ service cloud.firestore {
         && attendanceRecordCreateIsSafe(recordId);
     }
 
+    function facilityBookingCreateIsSafe(uid, bookingId) {
+      return uid == request.auth.uid
+        && bookingCreateIsSafe(bookingId);
+    }
+
+    function userBookingCopyMatchesOwner(uid) {
+      return resource.data.studentId == uid
+        && request.resource.data.studentId == uid
+        && request.resource.data.bookingId == resource.data.bookingId
+        && request.resource.data.slotOccurrenceId == resource.data.slotOccurrenceId
+        && request.resource.data.facilityId == resource.data.facilityId
+        && request.resource.data.templateId == resource.data.templateId
+        && request.resource.data.facilityName == resource.data.facilityName
+        && request.resource.data.studentName == resource.data.studentName
+        && request.resource.data.studentEmail == resource.data.studentEmail
+        && request.resource.data.requestedDate == resource.data.requestedDate
+        && request.resource.data.startTime == resource.data.startTime
+        && request.resource.data.endTime == resource.data.endTime
+        && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    function facilityKeysAreSafe() {
+      return request.resource.data.keys().hasOnly([
+        'facilityId',
+        'name',
+        'type',
+        'location',
+        'capacity',
+        'status',
+        'createdAt',
+        'updatedAt'
+      ]);
+    }
+
+    function facilityValuesAreSafe(facilityId) {
+      return facilityKeysAreSafe()
+        && request.resource.data.facilityId == facilityId
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.type is string
+        && request.resource.data.type.size() > 0
+        && request.resource.data.location is string
+        && request.resource.data.location.size() > 0
+        && request.resource.data.capacity is int
+        && request.resource.data.capacity > 0
+        && request.resource.data.status in ['available', 'unavailable']
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function bookingKeysAreSafe() {
+      return request.resource.data.keys().hasOnly([
+        'bookingId',
+        'slotOccurrenceId',
+        'facilityId',
+        'templateId',
+        'facilityName',
+        'studentId',
+        'studentName',
+        'studentEmail',
+        'requestedDate',
+        'startTime',
+        'endTime',
+        'status',
+        'reviewedBy',
+        'reviewedAt',
+        'createdAt',
+        'updatedAt'
+      ]);
+    }
+
+    function facilityPath(facilityId) {
+      return /databases/$(database)/documents/facilities/$(facilityId);
+    }
+
+    function slotTemplatePath(facilityId, templateId) {
+      return /databases/$(database)/documents/facilities/$(facilityId)/slotTemplates/$(templateId);
+    }
+
+    function bookingCreateIsSafe(bookingId) {
+      return bookingKeysAreSafe()
+        && request.resource.data.bookingId == bookingId
+        && request.resource.data.slotOccurrenceId is string
+        && request.resource.data.facilityId is string
+        && exists(facilityPath(request.resource.data.facilityId))
+        && get(facilityPath(request.resource.data.facilityId)).data.status == 'available'
+        && request.resource.data.templateId is string
+        && exists(slotTemplatePath(
+          request.resource.data.facilityId,
+          request.resource.data.templateId
+        ))
+        && get(slotTemplatePath(
+          request.resource.data.facilityId,
+          request.resource.data.templateId
+        )).data.status == 'active'
+        && request.resource.data.facilityName is string
+        && request.resource.data.facilityName.size() > 0
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.bookingId ==
+          request.auth.uid + '_' + request.resource.data.slotOccurrenceId
+        && request.resource.data.studentName is string
+        && request.resource.data.studentEmail is string
+        && request.resource.data.requestedDate is timestamp
+        && request.resource.data.startTime is timestamp
+        && request.resource.data.endTime is timestamp
+        && request.resource.data.endTime > request.resource.data.startTime
+        && request.resource.data.status == 'pending'
+        && request.resource.data.reviewedBy == null
+        && request.resource.data.reviewedAt == null
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function studentBookingCancelIsSafe() {
+      let changed = request.resource.data.diff(resource.data).changedKeys();
+      return changed.hasOnly(['status', 'updatedAt'])
+        && resource.data.studentId == request.auth.uid
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.bookingId == resource.data.bookingId
+        && request.resource.data.slotOccurrenceId == resource.data.slotOccurrenceId
+        && request.resource.data.facilityId == resource.data.facilityId
+        && request.resource.data.templateId == resource.data.templateId
+        && request.resource.data.facilityName == resource.data.facilityName
+        && request.resource.data.studentName == resource.data.studentName
+        && request.resource.data.studentEmail == resource.data.studentEmail
+        && request.resource.data.requestedDate == resource.data.requestedDate
+        && request.resource.data.startTime == resource.data.startTime
+        && request.resource.data.endTime == resource.data.endTime
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.reviewedBy == resource.data.reviewedBy
+        && request.resource.data.reviewedAt == resource.data.reviewedAt
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function staffBookingReviewIsSafe() {
+      let changed = request.resource.data.diff(resource.data).changedKeys();
+      return changed.hasOnly(['status', 'reviewedBy', 'reviewedAt', 'updatedAt'])
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.bookingId == resource.data.bookingId
+        && request.resource.data.slotOccurrenceId == resource.data.slotOccurrenceId
+        && request.resource.data.facilityId == resource.data.facilityId
+        && request.resource.data.templateId == resource.data.templateId
+        && request.resource.data.facilityName == resource.data.facilityName
+        && request.resource.data.studentName == resource.data.studentName
+        && request.resource.data.studentEmail == resource.data.studentEmail
+        && request.resource.data.requestedDate == resource.data.requestedDate
+        && request.resource.data.startTime == resource.data.startTime
+        && request.resource.data.endTime == resource.data.endTime
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.reviewedBy == request.auth.uid
+        && request.resource.data.reviewedAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && (
+          (
+            resource.data.status == 'pending'
+            && request.resource.data.status in ['approved', 'cancelled']
+          )
+          || (
+            resource.data.status == 'approved'
+            && request.resource.data.status == 'cancelled'
+          )
+        );
+    }
+
+    function slotTemplateKeysAreSafe() {
+      return request.resource.data.keys().hasOnly([
+        'templateId',
+        'facilityId',
+        'slotMode',
+        'slotDate',
+        'weekday',
+        'startMinutes',
+        'endMinutes',
+        'status',
+        'createdBy',
+        'createdAt',
+        'updatedAt'
+      ]);
+    }
+
+    function slotTemplateModeIsSafe() {
+      return (
+          request.resource.data.slotMode == 'date'
+          && request.resource.data.keys().hasAll(['slotDate'])
+          && !request.resource.data.keys().hasAny(['weekday'])
+          && request.resource.data.slotDate is timestamp
+        )
+        || (
+          request.resource.data.slotMode == 'daily'
+          && !request.resource.data.keys().hasAny(['slotDate', 'weekday'])
+        )
+        || (
+          request.resource.data.slotMode == 'weekdays'
+          && !request.resource.data.keys().hasAny(['slotDate', 'weekday'])
+        )
+        || (
+          request.resource.data.slotMode == 'weekly'
+          && request.resource.data.keys().hasAll(['weekday'])
+          && !request.resource.data.keys().hasAny(['slotDate'])
+          && request.resource.data.weekday is int
+          && request.resource.data.weekday >= 1
+          && request.resource.data.weekday <= 7
+        );
+    }
+
+    function slotTemplateValuesAreSafe(facilityId, templateId) {
+      return slotTemplateKeysAreSafe()
+        && request.resource.data.templateId == templateId
+        && request.resource.data.facilityId == facilityId
+        && request.resource.data.slotMode in ['date', 'daily', 'weekdays', 'weekly']
+        && slotTemplateModeIsSafe()
+        && request.resource.data.startMinutes is int
+        && request.resource.data.startMinutes >= 0
+        && request.resource.data.startMinutes < 1440
+        && request.resource.data.endMinutes is int
+        && request.resource.data.endMinutes > request.resource.data.startMinutes
+        && request.resource.data.endMinutes <= 1440
+        && request.resource.data.status in ['active', 'inactive']
+        && request.resource.data.createdBy is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function reservationKeysAreSafe() {
+      return request.resource.data.keys().hasOnly([
+        'slotOccurrenceId',
+        'facilityId',
+        'templateId',
+        'bookingId',
+        'studentId',
+        'requestedDate',
+        'startTime',
+        'endTime',
+        'status',
+        'createdAt',
+        'updatedAt'
+      ]);
+    }
+
+    function reservationCreateIsSafe(slotOccurrenceId) {
+      return reservationKeysAreSafe()
+        && request.resource.data.bookingId == slotOccurrenceId
+        && request.resource.data.bookingId ==
+          request.auth.uid + '_' + request.resource.data.slotOccurrenceId
+        && request.resource.data.slotOccurrenceId is string
+        && request.resource.data.studentId == request.auth.uid
+        && request.resource.data.facilityId is string
+        && request.resource.data.templateId is string
+        && exists(slotTemplatePath(
+          request.resource.data.facilityId,
+          request.resource.data.templateId
+        ))
+        && request.resource.data.requestedDate is timestamp
+        && request.resource.data.startTime is timestamp
+        && request.resource.data.endTime is timestamp
+        && request.resource.data.endTime > request.resource.data.startTime
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function staffReservationApproveIsSafe() {
+      let changed = request.resource.data.diff(resource.data).changedKeys();
+      return changed.hasOnly(['status', 'updatedAt'])
+        && request.resource.data.slotOccurrenceId == resource.data.slotOccurrenceId
+        && request.resource.data.facilityId == resource.data.facilityId
+        && request.resource.data.templateId == resource.data.templateId
+        && request.resource.data.bookingId == resource.data.bookingId
+        && request.resource.data.studentId == resource.data.studentId
+        && request.resource.data.requestedDate == resource.data.requestedDate
+        && request.resource.data.startTime == resource.data.startTime
+        && request.resource.data.endTime == resource.data.endTime
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'approved'
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function studentReservationDeleteIsSafe() {
+      return resource.data.studentId == request.auth.uid
+        && resource.data.status == 'pending';
+    }
+
+    function slotCapacityKeysAreSafe() {
+      return request.resource.data.keys().hasOnly([
+        'slotOccurrenceId',
+        'facilityId',
+        'requestedDate',
+        'startTime',
+        'endTime',
+        'pendingCount',
+        'approvedCount',
+        'activeCount',
+        'createdAt',
+        'updatedAt'
+      ]);
+    }
+
+    function slotCapacityValuesAreSafe(slotOccurrenceId) {
+      return slotCapacityKeysAreSafe()
+        && request.resource.data.slotOccurrenceId == slotOccurrenceId
+        && request.resource.data.facilityId is string
+        && request.resource.data.requestedDate is timestamp
+        && request.resource.data.startTime is timestamp
+        && request.resource.data.endTime is timestamp
+        && request.resource.data.endTime > request.resource.data.startTime
+        && request.resource.data.pendingCount is int
+        && request.resource.data.pendingCount >= 0
+        && request.resource.data.approvedCount is int
+        && request.resource.data.approvedCount >= 0
+        && request.resource.data.activeCount is int
+        && request.resource.data.activeCount >= 0
+        && request.resource.data.activeCount ==
+          request.resource.data.pendingCount + request.resource.data.approvedCount
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp
+        && exists(facilityPath(request.resource.data.facilityId));
+    }
+
+    function busKeysAreSafe() {
+      return request.resource.data.keys().hasOnly([
+        'busId',
+        'routeName',
+        'driverIds',
+        'status',
+        'startName',
+        'endName',
+        'routePoints'
+      ]);
+    }
+
+    function routePointIsSafe(point) {
+      return point is map
+        && point.keys().hasOnly(['latitude', 'longitude'])
+        && point.latitude is number
+        && point.latitude >= -90
+        && point.latitude <= 90
+        && point.longitude is number
+        && point.longitude >= -180
+        && point.longitude <= 180;
+    }
+
+    function busValuesAreSafe(busId) {
+      return busKeysAreSafe()
+        && request.resource.data.busId == busId
+        && request.resource.data.routeName is string
+        && request.resource.data.routeName.size() > 0
+        && request.resource.data.driverIds is list
+        && request.resource.data.driverIds.size() <= 10
+        && request.resource.data.driverIds.all(
+          driverId,
+          driverId is string && driverId.size() > 0
+        )
+        && request.resource.data.status in ['active', 'inactive']
+        && (
+          request.resource.data.startName == null
+          || request.resource.data.startName is string
+        )
+        && (
+          request.resource.data.endName == null
+          || request.resource.data.endName is string
+        )
+        && request.resource.data.routePoints is list
+        && request.resource.data.routePoints.size() >= 2
+        && request.resource.data.routePoints.size() <= 30
+        && request.resource.data.routePoints.all(
+          point,
+          routePointIsSafe(point)
+        );
+    }
+
+    function busLocationKeysAreSafe() {
+      return request.resource.data.keys().hasOnly([
+        'busId',
+        'driverId',
+        'latitude',
+        'longitude',
+        'speed',
+        'heading',
+        'isBroadcasting',
+        'updatedAt'
+      ]);
+    }
+
+    function busLocationValuesAreSafe(busId) {
+      return busLocationKeysAreSafe()
+        && request.resource.data.busId == busId
+        && request.resource.data.driverId is string
+        && request.resource.data.latitude is number
+        && request.resource.data.latitude >= -90
+        && request.resource.data.latitude <= 90
+        && request.resource.data.longitude is number
+        && request.resource.data.longitude >= -180
+        && request.resource.data.longitude <= 180
+        && request.resource.data.speed is number
+        && request.resource.data.speed >= 0
+        && request.resource.data.heading is number
+        && request.resource.data.heading >= 0
+        && request.resource.data.heading <= 360
+        && request.resource.data.isBroadcasting is bool
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    function driverCanBroadcastBus(busId) {
+      return isDriver()
+        && exists(busPath(busId))
+        && (
+          (
+            bus(busId).data.driverIds is list
+            && bus(busId).data.driverIds.hasAny([request.auth.uid])
+          )
+          || (
+            bus(busId).data.driverId is string
+            && bus(busId).data.driverId == request.auth.uid
+          )
+        )
+        && bus(busId).data.status == 'active'
+        && request.resource.data.driverId == request.auth.uid;
+    }
+
     match /users/{uid} {
       allow get: if isOwner(uid) || isAdmin();
       allow list: if isAdmin();
@@ -259,6 +699,25 @@ service cloud.firestore {
         allow create: if isStudent()
           && attendanceHistoryCreateIsSafe(uid, recordId);
         allow update, delete: if isAdmin();
+      }
+
+      match /facilityBookings/{bookingId} {
+        allow get, list: if isOwner(uid) || isAdmin();
+        allow create: if isStudent()
+          && facilityBookingCreateIsSafe(uid, bookingId);
+        allow update: if isAdmin()
+          || (
+            isStudent()
+            && isOwner(uid)
+            && userBookingCopyMatchesOwner(uid)
+            && studentBookingCancelIsSafe()
+          )
+          || (
+            isStaff()
+            && userBookingCopyMatchesOwner(uid)
+            && staffBookingReviewIsSafe()
+          );
+        allow delete: if isAdmin();
       }
 
       match /lecturerAttendance/{sessionId}/records/{recordId} {
@@ -306,34 +765,76 @@ service cloud.firestore {
     }
 
     match /facilities/{facilityId} {
-      allow read: if signedIn();
-      allow write: if isAdmin();
+      allow get, list: if isAdmin()
+        || isStaff()
+        || (signedIn() && resource.data.status == 'available');
+      allow create, update: if isAdmin() && facilityValuesAreSafe(facilityId);
+      allow delete: if isAdmin();
+
+      match /slotTemplates/{templateId} {
+        allow get, list: if isAdmin()
+          || isStaff()
+          || (signedIn() && resource.data.status == 'active');
+        allow create: if isStaff()
+          && slotTemplateValuesAreSafe(facilityId, templateId)
+          && request.resource.data.createdBy == request.auth.uid;
+        allow update: if isStaff()
+          && slotTemplateValuesAreSafe(facilityId, templateId)
+          && request.resource.data.createdBy == resource.data.createdBy
+          && request.resource.data.createdAt == resource.data.createdAt;
+        allow delete: if isStaff() || isAdmin();
+      }
     }
 
     match /bookings/{bookingId} {
       allow get: if isAdmin()
-        || hasRole('staff')
-        || (signedIn() && resource.data.studentId == request.auth.uid);
-      allow list: if isAdmin() || hasRole('staff');
-      allow create: if hasRole('student')
-        && request.resource.data.studentId == request.auth.uid;
-      allow update: if isAdmin() || hasRole('staff');
+        || isStaff()
+        || (signedIn() && resource.data.studentId == request.auth.uid)
+        || (
+          isStudent()
+          && !exists(/databases/$(database)/documents/bookings/$(bookingId))
+        );
+      allow list: if isAdmin()
+        || isStaff()
+        || (isStudent() && resource.data.studentId == request.auth.uid);
+      allow create: if isStudent()
+        && bookingCreateIsSafe(bookingId);
+      allow update: if isAdmin()
+        || (isStudent() && studentBookingCancelIsSafe())
+        || (isStaff() && staffBookingReviewIsSafe());
+      allow delete: if isAdmin();
+    }
+
+    match /facilitySlotReservations/{slotOccurrenceId} {
+      allow get, list: if signedIn();
+      allow create: if isStudent()
+        && reservationCreateIsSafe(slotOccurrenceId);
+      allow update: if isAdmin()
+        || (isStaff() && staffReservationApproveIsSafe());
+      allow delete: if isAdmin()
+        || (isStudent() && studentReservationDeleteIsSafe())
+        || isStaff();
+    }
+
+    match /facilitySlotCapacity/{slotOccurrenceId} {
+      allow get, list: if signedIn();
+      allow create, update: if (isStudent() || isStaff() || isAdmin())
+        && slotCapacityValuesAreSafe(slotOccurrenceId);
       allow delete: if isAdmin();
     }
 
     match /buses/{busId} {
       allow read: if signedIn();
-      allow write: if isAdmin();
+      allow create, update: if isAdmin() && busValuesAreSafe(busId);
+      allow delete: if isAdmin();
     }
 
     match /busLocations/{busId} {
       allow read: if signedIn();
-      allow create, update: if isAdmin()
-        || (
-          hasRole('driver')
-          && request.resource.data.driverId == request.auth.uid
-          && (!exists(/databases/$(database)/documents/busLocations/$(busId))
-            || resource.data.driverId == request.auth.uid)
+      allow create, update: if busLocationValuesAreSafe(busId)
+        && (
+          isAdmin()
+          || driverCanBroadcastBus(busId)
         );
       allow delete: if isAdmin();
     }

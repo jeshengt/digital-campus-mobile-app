@@ -7,6 +7,7 @@ class AttendanceRecord {
     required this.courseCode,
     required this.studentId,
     required this.studentName,
+    required this.studentEmail,
     required this.scannedAt,
     required this.locationValidated,
     required this.latitude,
@@ -21,6 +22,7 @@ class AttendanceRecord {
   final String courseCode;
   final String studentId;
   final String studentName;
+  final String studentEmail;
   final DateTime scannedAt;
   final bool locationValidated;
   final double? latitude;
@@ -38,6 +40,7 @@ class AttendanceRecord {
       courseCode: data['courseCode'] as String? ?? '',
       studentId: data['studentId'] as String? ?? '',
       studentName: data['studentName'] as String? ?? '',
+      studentEmail: data['studentEmail'] as String? ?? '',
       scannedAt:
           _readDate(data['scannedAt']) ??
           DateTime.fromMillisecondsSinceEpoch(0),
@@ -58,6 +61,7 @@ class AttendanceRecord {
       'courseCode': courseCode,
       'studentId': studentId,
       'studentName': studentName,
+      'studentEmail': studentEmail,
       'scannedAt': scannedAt,
       'locationValidated': locationValidated,
       'latitude': latitude,

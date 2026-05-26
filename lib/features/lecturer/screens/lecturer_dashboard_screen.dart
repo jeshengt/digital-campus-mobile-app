@@ -35,6 +35,13 @@ class LecturerDashboardScreen extends StatelessWidget {
           statusLabel: 'Local',
           description: 'Reports will be generated on device, not by a backend.',
         ),
+        UtmInfoCard(
+          icon: Icons.directions_bus_filled_outlined,
+          title: 'Live bus tracking',
+          statusLabel: 'OSM',
+          description: 'Check active campus buses between classes.',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.busTrackingMap),
+        ),
       ],
     );
   }

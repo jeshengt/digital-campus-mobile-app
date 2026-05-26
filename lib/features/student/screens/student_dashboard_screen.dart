@@ -29,18 +29,20 @@ class StudentDashboardScreen extends StatelessWidget {
           onTap: () =>
               Navigator.pushNamed(context, AppRoutes.studentAttendanceHistory),
         ),
-        const UtmInfoCard(
+        UtmInfoCard(
           icon: Icons.event_available_outlined,
           title: 'Facility booking',
-          statusLabel: 'Planned',
-          description: 'Students will create and track booking requests here.',
+          statusLabel: 'Ready',
+          description: 'Browse facilities and track your booking requests.',
+          onTap: () =>
+              Navigator.pushNamed(context, AppRoutes.studentFacilityBooking),
         ),
-        const UtmInfoCard(
+        UtmInfoCard(
           icon: Icons.directions_bus_filled_outlined,
           title: 'Live bus tracking',
-          statusLabel: 'OSM',
-          description:
-              'OpenStreetMap-based bus viewing will connect here later.',
+          statusLabel: 'Live',
+          description: 'View active campus buses on OpenStreetMap.',
+          onTap: () => Navigator.pushNamed(context, AppRoutes.busTrackingMap),
         ),
       ],
     );

@@ -13,6 +13,13 @@ import '../../features/auth/screens/register_screen.dart';
 import '../../features/auth/screens/role_gateway_screen.dart';
 import '../../features/auth/screens/sign_in_screen.dart';
 import '../../features/auth/screens/splash_screen.dart';
+import '../../features/booking/screens/admin_facility_management_screen.dart';
+import '../../features/booking/screens/staff_booking_review_screen.dart';
+import '../../features/booking/screens/staff_slot_management_screen.dart';
+import '../../features/booking/screens/student_facility_booking_screen.dart';
+import '../../features/bus_tracking/screens/admin_bus_management_screen.dart';
+import '../../features/bus_tracking/screens/bus_tracking_map_screen.dart';
+import '../../features/bus_tracking/screens/driver_bus_broadcast_screen.dart';
 import '../../features/driver/screens/driver_dashboard_screen.dart';
 import '../../features/lecturer/screens/lecturer_dashboard_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
@@ -40,6 +47,13 @@ class AppRoutes {
   static const lecturerAttendanceList = '/attendance/lecturer/list';
   static const studentScanAttendance = '/attendance/student/scan';
   static const studentAttendanceHistory = '/attendance/student/history';
+  static const busTrackingMap = '/bus-tracking/map';
+  static const driverBusBroadcast = '/bus-tracking/driver/broadcast';
+  static const adminBusManagement = '/bus-tracking/admin/manage';
+  static const studentFacilityBooking = '/booking/student';
+  static const staffBookingReview = '/booking/staff/review';
+  static const staffSlotManagement = '/booking/staff/slots';
+  static const adminFacilityManagement = '/booking/admin/facilities';
 
   static Map<String, WidgetBuilder> routes({
     required bool isFirebaseReady,
@@ -67,6 +81,13 @@ class AppRoutes {
       lecturerAttendanceList: (_) => const LecturerAttendanceListScreen(),
       studentScanAttendance: (_) => const StudentScanAttendanceScreen(),
       studentAttendanceHistory: (_) => const StudentAttendanceHistoryScreen(),
+      busTrackingMap: (_) => const BusTrackingMapScreen(),
+      driverBusBroadcast: (_) => const DriverBusBroadcastScreen(),
+      adminBusManagement: (_) => const AdminBusManagementScreen(),
+      studentFacilityBooking: (_) => const StudentFacilityBookingScreen(),
+      staffBookingReview: (_) => const StaffBookingReviewScreen(),
+      staffSlotManagement: (_) => const StaffSlotManagementScreen(),
+      adminFacilityManagement: (_) => const AdminFacilityManagementScreen(),
     };
   }
 }

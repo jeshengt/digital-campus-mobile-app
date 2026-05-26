@@ -6,15 +6,19 @@ import '../../../core/constants/app_dimensions.dart';
 import '../../../shared/widgets/utm_primary_button.dart';
 import '../models/attendance_record.dart';
 import '../models/attendance_session.dart';
+import '../services/attendance_pdf_export_service.dart';
 import '../services/attendance_service.dart';
 
 class LecturerAttendanceListScreen extends StatefulWidget {
   const LecturerAttendanceListScreen({
     super.key,
     AttendanceService? attendanceService,
-  }) : _attendanceService = attendanceService;
+    AttendancePdfExportService? pdfExportService,
+  }) : _attendanceService = attendanceService,
+       _pdfExportService = pdfExportService;
 
   final AttendanceService? _attendanceService;
+  final AttendancePdfExportService? _pdfExportService;
 
   @override
   State<LecturerAttendanceListScreen> createState() =>
@@ -24,12 +28,14 @@ class LecturerAttendanceListScreen extends StatefulWidget {
 class _LecturerAttendanceListScreenState
     extends State<LecturerAttendanceListScreen> {
   late final AttendanceService _attendanceService;
+  late final AttendancePdfExportService? _pdfExportService;
 
   @override
   void initState() {
     super.initState();
     _attendanceService =
         widget._attendanceService ?? FirebaseAttendanceService();
+    _pdfExportService = widget._pdfExportService;
   }
 
   @override
@@ -84,6 +90,7 @@ class _LecturerAttendanceListScreenState
                   )
                 : _RecordList(
                     attendanceService: _attendanceService,
+                    pdfExportService: _pdfExportService,
                     session: session,
                   ),
           ),
@@ -285,16 +292,31 @@ class _SessionActions extends StatelessWidget {
   }
 }
 
-class _RecordList extends StatelessWidget {
-  const _RecordList({required this.attendanceService, required this.session});
+class _RecordList extends StatefulWidget {
+  const _RecordList({
+    required this.attendanceService,
+    required this.pdfExportService,
+    required this.session,
+  });
 
   final AttendanceService attendanceService;
+  final AttendancePdfExportService? pdfExportService;
   final AttendanceSession session;
+
+  @override
+  State<_RecordList> createState() => _RecordListState();
+}
+
+class _RecordListState extends State<_RecordList> {
+  bool _isSavingPdf = false;
+  bool _isSharingPdf = false;
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<AttendanceRecord>>(
-      stream: attendanceService.watchRecordsForSession(session.sessionId),
+      stream: widget.attendanceService.watchRecordsForSession(
+        widget.session.sessionId,
+      ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -313,7 +335,14 @@ class _RecordList extends StatelessWidget {
         return ListView(
           padding: const EdgeInsets.all(AppDimensions.spacingLarge),
           children: [
-            _RecordSummary(session: session, count: records.length),
+            _RecordSummary(session: widget.session, count: records.length),
+            const SizedBox(height: AppDimensions.spacingMedium),
+            _PdfExportActions(
+              isSaving: _isSavingPdf,
+              isSharing: _isSharingPdf,
+              onSave: () => _savePdf(records),
+              onShare: () => _sharePdf(records),
+            ),
             const SizedBox(height: AppDimensions.spacingLarge),
             if (records.isEmpty)
               const _MessageState(
@@ -326,6 +355,123 @@ class _RecordList extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+
+  Future<void> _savePdf(List<AttendanceRecord> records) async {
+    if (_isSavingPdf || _isSharingPdf) {
+      return;
+    }
+
+    setState(() => _isSavingPdf = true);
+
+    try {
+      final pdfExportService =
+          widget.pdfExportService ?? DefaultAttendancePdfExportService();
+      final result = await pdfExportService.saveAttendanceList(
+        session: widget.session,
+        records: records,
+      );
+
+      if (mounted) {
+        _showSnack(result.message);
+      }
+    } catch (error) {
+      if (mounted) {
+        _showSnack(error.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingPdf = false);
+      }
+    }
+  }
+
+  Future<void> _sharePdf(List<AttendanceRecord> records) async {
+    if (_isSavingPdf || _isSharingPdf) {
+      return;
+    }
+
+    setState(() => _isSharingPdf = true);
+
+    try {
+      final box = context.findRenderObject() as RenderBox?;
+      final pdfExportService =
+          widget.pdfExportService ?? DefaultAttendancePdfExportService();
+      final result = await pdfExportService.shareAttendanceList(
+        session: widget.session,
+        records: records,
+        sharePositionOrigin: box == null
+            ? null
+            : box.localToGlobal(Offset.zero) & box.size,
+      );
+
+      if (mounted) {
+        _showSnack(result.message);
+      }
+    } catch (error) {
+      if (mounted) {
+        _showSnack(error.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSharingPdf = false);
+      }
+    }
+  }
+
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _PdfExportActions extends StatelessWidget {
+  const _PdfExportActions({
+    required this.isSaving,
+    required this.isSharing,
+    required this.onSave,
+    required this.onShare,
+  });
+
+  final bool isSaving;
+  final bool isSharing;
+  final VoidCallback onSave;
+  final VoidCallback onShare;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: isSaving || isSharing ? null : onSave,
+            icon: isSaving
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.download_rounded),
+            label: const Text('Save as PDF'),
+          ),
+        ),
+        const SizedBox(width: AppDimensions.spacingMedium),
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: isSaving || isSharing ? null : onShare,
+            icon: isSharing
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.ios_share_rounded),
+            label: const Text('Share as PDF'),
+          ),
+        ),
+      ],
     );
   }
 }
