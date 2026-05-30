@@ -7,6 +7,12 @@ Real Firebase API keys must not be committed to Git. Keep local config files and
 1. Copy `android/app/google-services.json.template` to `android/app/google-services.json`.
 2. Replace `REPLACE_WITH_RESTRICTED_ANDROID_FIREBASE_API_KEY` with the restricted Android Firebase API key from Firebase Console.
 3. Keep `android/app/google-services.json` ignored by Git.
+4. Build Android normally. Android Firebase initialization reads the ignored local `google-services.json` through the Google Services Gradle plugin:
+
+```powershell
+flutter run
+flutter build apk
+```
 
 ## Flutter Web
 
@@ -16,17 +22,6 @@ Pass the restricted web Firebase API key at build or run time:
 flutter run -d chrome --dart-define=UTMGO_FIREBASE_WEB_API_KEY=your_web_key
 flutter build web --dart-define=UTMGO_FIREBASE_WEB_API_KEY=your_web_key
 ```
-
-## Android Flutter Defines
-
-The shared Dart Firebase options also read the Android key from a dart define:
-
-```powershell
-flutter run --dart-define=UTMGO_FIREBASE_ANDROID_API_KEY=your_android_key
-flutter build apk --dart-define=UTMGO_FIREBASE_ANDROID_API_KEY=your_android_key
-```
-
-Use both defines when building a target that needs both Firebase option sets.
 
 ## Key Safety
 

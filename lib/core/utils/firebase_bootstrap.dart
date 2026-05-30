@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../../firebase_options.dart';
 
@@ -15,9 +16,13 @@ class FirebaseBootstrap {
   static Future<FirebaseBootstrapResult> initialize() async {
     try {
       if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
+        if (kIsWeb) {
+          await Firebase.initializeApp(
+            options: DefaultFirebaseOptions.web,
+          );
+        } else {
+          await Firebase.initializeApp();
+        }
       }
 
       return const FirebaseBootstrapResult(isReady: true);
