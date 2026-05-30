@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
+import '../../../core/errors/app_exception.dart';
 import '../models/bus_location.dart';
 import '../models/campus_bus.dart';
 import '../services/bus_tracking_service.dart';
@@ -13,10 +14,13 @@ class BusTrackingMapScreen extends StatefulWidget {
     super.key,
     this.title = 'Live bus tracking',
     BusTrackingService? busTrackingService,
-  }) : _busTrackingService = busTrackingService;
+    BusLocationProvider? locationProvider,
+  }) : _busTrackingService = busTrackingService,
+       _locationProvider = locationProvider;
 
   final String title;
   final BusTrackingService? _busTrackingService;
+  final BusLocationProvider? _locationProvider;
 
   @override
   State<BusTrackingMapScreen> createState() => _BusTrackingMapScreenState();
@@ -24,13 +28,18 @@ class BusTrackingMapScreen extends StatefulWidget {
 
 class _BusTrackingMapScreenState extends State<BusTrackingMapScreen> {
   late final BusTrackingService _busTrackingService;
+  late final BusLocationProvider _locationProvider;
   String? _selectedBusId;
+  BusPosition? _currentPosition;
+  bool _isLocating = false;
 
   @override
   void initState() {
     super.initState();
     _busTrackingService =
         widget._busTrackingService ?? FirebaseBusTrackingService();
+    _locationProvider =
+        widget._locationProvider ?? const GeolocatorBusLocationProvider();
   }
 
   @override
@@ -92,52 +101,60 @@ class _BusTrackingMapScreenState extends State<BusTrackingMapScreen> {
                       for (final location in locations)
                         location.busId: location,
                     };
-                    final liveBusIds = locationByBusId.keys.toSet();
-                    final selectedBusId =
-                        _selectedBusId ??
-                        (liveBusIds.isNotEmpty ? liveBusIds.first : null);
+                    final busIds = {for (final bus in buses) bus.busId};
+                    final liveBusIds = locationByBusId.keys
+                        .where(busIds.contains)
+                        .toSet();
+                    final selectedBusId = _resolveSelectedBusId(
+                      buses: buses,
+                      liveBusIds: liveBusIds,
+                    );
+                    final selectedBus = buses.firstWhere(
+                      (bus) => bus.busId == selectedBusId,
+                    );
 
-                    return ListView(
+                    return SingleChildScrollView(
                       padding: const EdgeInsets.all(AppDimensions.spacingLarge),
-                      children: [
-                        _MapHeader(liveCount: liveBusIds.length),
-                        const SizedBox(height: AppDimensions.spacingMedium),
-                        if (liveBusIds.isEmpty)
-                          const _BusMessageCard(
-                            icon: Icons.location_off_outlined,
-                            title: 'No live buses',
-                            message:
-                                'A bus will appear on the map when a driver starts broadcasting.',
-                          )
-                        else
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _MapHeader(liveCount: liveBusIds.length),
+                          const SizedBox(height: AppDimensions.spacingMedium),
+                          _RouteDropdown(
+                            buses: buses,
+                            locationByBusId: locationByBusId,
+                            selectedBusId: selectedBusId,
+                            onChanged: (busId) {
+                              setState(() {
+                                _selectedBusId = busId;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: AppDimensions.spacingMedium),
                           BusMapPanel(
                             buses: buses,
                             locations: locations,
                             selectedBusId: selectedBusId,
+                            currentPosition: _currentPosition,
+                            isLocating: _isLocating,
+                            onLocate: _locateCurrentPosition,
                           ),
-                        const SizedBox(height: AppDimensions.spacingLarge),
-                        Text(
-                          'Routes',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: AppDimensions.spacingMedium),
-                        for (final bus in buses)
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              bottom: AppDimensions.spacingMedium,
-                            ),
-                            child: BusStatusCard(
-                              bus: bus,
-                              location: locationByBusId[bus.busId],
-                              isSelected: bus.busId == selectedBusId,
-                              onTap: () {
-                                setState(() {
-                                  _selectedBusId = bus.busId;
-                                });
-                              },
-                            ),
+                          const SizedBox(height: AppDimensions.spacingMedium),
+                          BusStatusCard(
+                            bus: selectedBus,
+                            location: locationByBusId[selectedBusId],
                           ),
-                      ],
+                          if (liveBusIds.isEmpty) ...[
+                            const SizedBox(height: AppDimensions.spacingMedium),
+                            const _BusMessageCard(
+                              icon: Icons.location_off_outlined,
+                              title: 'No live buses',
+                              message:
+                                  'A bus will appear on the map when a driver starts broadcasting.',
+                            ),
+                          ],
+                        ],
+                      ),
                     );
                   },
                 );
@@ -147,6 +164,103 @@ class _BusTrackingMapScreenState extends State<BusTrackingMapScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _locateCurrentPosition() async {
+    setState(() {
+      _isLocating = true;
+    });
+
+    try {
+      final position = await _locationProvider.getCurrentPosition();
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+          _isLocating = false;
+        });
+      }
+    } on AppException catch (error) {
+      _showLocationError(error.message);
+    } catch (error) {
+      _showLocationError(error.toString());
+    }
+  }
+
+  void _showLocationError(String message) {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isLocating = false;
+    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String _resolveSelectedBusId({
+    required List<CampusBus> buses,
+    required Set<String> liveBusIds,
+  }) {
+    if (buses.any((bus) => bus.busId == _selectedBusId)) {
+      return _selectedBusId!;
+    }
+
+    for (final bus in buses) {
+      if (liveBusIds.contains(bus.busId)) {
+        return bus.busId;
+      }
+    }
+
+    return buses.first.busId;
+  }
+}
+
+class _RouteDropdown extends StatelessWidget {
+  const _RouteDropdown({
+    required this.buses,
+    required this.locationByBusId,
+    required this.selectedBusId,
+    required this.onChanged,
+  });
+
+  final List<CampusBus> buses;
+  final Map<String, BusLocation> locationByBusId;
+  final String selectedBusId;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<String>(
+      key: const Key('busRouteDropdown'),
+      initialValue: selectedBusId,
+      isExpanded: true,
+      decoration: const InputDecoration(
+        labelText: 'Select route',
+        prefixIcon: Icon(Icons.route_rounded),
+      ),
+      items: [
+        for (final bus in buses)
+          DropdownMenuItem(
+            value: bus.busId,
+            child: Text(
+              '${bus.routeName} - ${_routeStatusLabel(bus)}',
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+      ],
+      onChanged: (busId) {
+        if (busId != null) {
+          onChanged(busId);
+        }
+      },
+    );
+  }
+
+  String _routeStatusLabel(CampusBus bus) {
+    final location = locationByBusId[bus.busId];
+    return location?.isBroadcasting ?? false ? 'Live' : 'Offline';
   }
 }
 

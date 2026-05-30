@@ -37,6 +37,7 @@ class _DriverBusBroadcastScreenState extends State<DriverBusBroadcastScreen> {
   BusPosition? _currentPosition;
   bool _isBroadcasting = false;
   bool _isUpdating = false;
+  bool _isPublishInFlight = false;
 
   @override
   void initState() {
@@ -164,7 +165,7 @@ class _DriverBusBroadcastScreenState extends State<DriverBusBroadcastScreen> {
                           ),
                           const SizedBox(height: AppDimensions.spacingMedium),
                           Text(
-                            'Broadcast updates are sent every 30 seconds while live.',
+                            'Broadcast updates are sent every 10 seconds while live.',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
@@ -216,13 +217,22 @@ class _DriverBusBroadcastScreenState extends State<DriverBusBroadcastScreen> {
   }
 
   Future<void> _publishCurrentLocation(CampusBus bus) async {
-    final position = await _locationProvider.getCurrentPosition();
-    if (mounted) {
-      setState(() {
-        _currentPosition = position;
-      });
+    if (_isPublishInFlight) {
+      return;
     }
-    await _busTrackingService.publishLocation(bus: bus, position: position);
+
+    _isPublishInFlight = true;
+    try {
+      final position = await _locationProvider.getCurrentPosition();
+      if (mounted) {
+        setState(() {
+          _currentPosition = position;
+        });
+      }
+      await _busTrackingService.publishLocation(bus: bus, position: position);
+    } finally {
+      _isPublishInFlight = false;
+    }
   }
 
   Future<void> _locateCurrentPosition() async {

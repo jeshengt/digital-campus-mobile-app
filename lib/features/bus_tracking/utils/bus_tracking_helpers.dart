@@ -5,7 +5,7 @@ import '../models/bus_route_point.dart';
 
 const campusDefaultLatitude = 1.5583;
 const campusDefaultLongitude = 103.6371;
-const busBroadcastInterval = Duration(seconds: 30);
+const busBroadcastInterval = Duration(seconds: 10);
 const fallbackBusSpeedMetersPerSecond = 4.17;
 
 double distanceToPointMeters({
@@ -62,5 +62,6 @@ String formatEta(Duration? eta) {
 String formatUpdatedAt(DateTime value) {
   final hour = value.hour.toString().padLeft(2, '0');
   final minute = value.minute.toString().padLeft(2, '0');
-  return '$hour:$minute';
+  final second = value.second.toString().padLeft(2, '0');
+  return '$hour:$minute:$second';
 }

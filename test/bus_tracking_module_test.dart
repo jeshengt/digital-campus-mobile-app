@@ -103,6 +103,10 @@ void main() {
       expect(formatEta(null), 'ETA unavailable');
     });
 
+    test('formats bus update time with seconds', () {
+      expect(formatUpdatedAt(DateTime(2026, 5, 24, 14, 3, 7)), '14:03:07');
+    });
+
     test('validates admin bus drafts', () {
       expect(
         validateCampusBusDraft(
@@ -252,7 +256,16 @@ void main() {
 
       expect(find.text('Campus shuttle map'), findsOneWidget);
       expect(find.text('No live buses'), findsOneWidget);
-      expect(find.text('Kolej Loop'), findsOneWidget);
+      expect(find.text('Kolej Loop'), findsWidgets);
+      expect(find.byKey(const Key('busMapLocateButton')), findsOneWidget);
+      expect(find.byKey(const Key('busTrackingMapPanel')), findsOneWidget);
+      expect(find.byKey(const Key('busRouteDropdown')), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byKey(const Key('busRouteDropdown'))).dy,
+        lessThan(
+          tester.getTopLeft(find.byKey(const Key('busTrackingMapPanel'))).dy,
+        ),
+      );
     });
 
     testWidgets('bus map shows live bus count when a driver broadcasts', (
@@ -273,6 +286,56 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('1 live bus now'), findsOneWidget);
+      expect(find.byKey(const Key('busRouteDropdown')), findsOneWidget);
+      expect(find.text('Kolej Loop - Live'), findsOneWidget);
+      expect(find.text('14:30:00'), findsOneWidget);
+    });
+
+    testWidgets('bus map route dropdown changes selected route', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: BusTrackingMapScreen(
+            busTrackingService: _FakeBusTrackingService(
+              buses: [_sampleBus(), _sampleSecondBus()],
+              locations: [_sampleLocation()],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('busTrackingMapPanel')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('busRouteDropdown')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Engineering Shuttle - Offline').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Engineering Shuttle - Offline'), findsOneWidget);
+    });
+
+    testWidgets('bus map can show user current location', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: BusTrackingMapScreen(
+            busTrackingService: _FakeBusTrackingService(
+              buses: [_sampleBus()],
+              locations: [_sampleLocation()],
+            ),
+            locationProvider: const _FakeBusLocationProvider(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('busMapLocateButton')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('You are here'), findsOneWidget);
+      expect(find.byIcon(Icons.person_pin_circle_rounded), findsOneWidget);
     });
 
     testWidgets('driver broadcast starts with assigned bus', (tester) async {
@@ -298,6 +361,9 @@ void main() {
       await tester.pump();
 
       expect(service.publishedBusId, 'bus-1');
+      expect(service.publishCount, 1);
+      await tester.pump(busBroadcastInterval);
+      expect(service.publishCount, 2);
       expect(find.text('Location broadcasting started.'), findsOneWidget);
     });
 
@@ -637,6 +703,21 @@ CampusBus _sampleBus() {
   );
 }
 
+CampusBus _sampleSecondBus() {
+  return const CampusBus(
+    busId: 'bus-2',
+    routeName: 'Engineering Shuttle',
+    driverIds: ['driver-2'],
+    status: 'active',
+    startName: 'Engineering',
+    endName: 'Library',
+    routePoints: [
+      BusRoutePoint(latitude: 1.5612, longitude: 103.6411),
+      BusRoutePoint(latitude: 1.5634, longitude: 103.6428),
+    ],
+  );
+}
+
 BusLocation _sampleLocation() {
   return BusLocation(
     busId: 'bus-1',
@@ -680,6 +761,7 @@ class _FakeBusTrackingService implements BusTrackingService {
   final List<BusLocation> locations;
   String? publishedBusId;
   String? stoppedBusId;
+  int publishCount = 0;
 
   @override
   Future<void> publishLocation({
@@ -687,6 +769,7 @@ class _FakeBusTrackingService implements BusTrackingService {
     required BusPosition position,
   }) async {
     publishedBusId = bus.busId;
+    publishCount += 1;
   }
 
   @override

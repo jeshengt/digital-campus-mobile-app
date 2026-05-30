@@ -6,6 +6,7 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
 import '../models/bus_location.dart';
 import '../models/campus_bus.dart';
+import '../services/bus_tracking_service.dart';
 import '../utils/bus_tracking_helpers.dart';
 
 class BusMapPanel extends StatelessWidget {
@@ -14,11 +15,17 @@ class BusMapPanel extends StatelessWidget {
     required this.buses,
     required this.locations,
     this.selectedBusId,
+    this.currentPosition,
+    this.onLocate,
+    this.isLocating = false,
   });
 
   final List<CampusBus> buses;
   final List<BusLocation> locations;
   final String? selectedBusId;
+  final BusPosition? currentPosition;
+  final VoidCallback? onLocate;
+  final bool isLocating;
 
   @override
   Widget build(BuildContext context) {
@@ -33,12 +40,16 @@ class BusMapPanel extends StatelessWidget {
         break;
       }
     }
-    final centerLocation =
-        selectedLocation ??
-        (activeLocations.isNotEmpty ? activeLocations.first : null);
-    final center = centerLocation == null
-        ? const LatLng(campusDefaultLatitude, campusDefaultLongitude)
-        : LatLng(centerLocation.latitude, centerLocation.longitude);
+    final selectedBus = selectedBusId == null ? null : busById[selectedBusId];
+    final firstActiveLocation = activeLocations.isNotEmpty
+        ? activeLocations.first
+        : null;
+    final center = _mapCenter(
+      selectedLocation: selectedLocation,
+      selectedBus: selectedBus,
+      firstActiveLocation: firstActiveLocation,
+    );
+    final featuredBus = selectedBus ?? (buses.isNotEmpty ? buses.first : null);
 
     final polylines = <Polyline<Object>>[];
     for (final bus in buses) {
@@ -65,39 +76,202 @@ class BusMapPanel extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
         child: SizedBox(
+          key: const Key('busTrackingMapPanel'),
           height: 360,
-          child: FlutterMap(
-            options: MapOptions(
-              initialCenter: center,
-              initialZoom: activeLocations.isEmpty ? 15 : 16,
-            ),
+          child: Stack(
             children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.utmgo',
+              FlutterMap(
+                key: ValueKey(
+                  '${selectedBusId ?? ''}-${currentPosition?.latitude ?? ''}-${currentPosition?.longitude ?? ''}',
+                ),
+                options: MapOptions(
+                  initialCenter: center,
+                  initialZoom: currentPosition != null
+                      ? 16
+                      : activeLocations.isEmpty
+                      ? 15
+                      : 16,
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.example.utmgo',
+                  ),
+                  if (polylines.isNotEmpty) PolylineLayer(polylines: polylines),
+                  MarkerLayer(
+                    markers: [
+                      for (final location in activeLocations)
+                        Marker(
+                          point: LatLng(location.latitude, location.longitude),
+                          width: 54,
+                          height: 54,
+                          child: _BusMarker(
+                            bus: busById[location.busId]!,
+                            isSelected: location.busId == selectedBusId,
+                          ),
+                        ),
+                      if (currentPosition != null)
+                        Marker(
+                          point: LatLng(
+                            currentPosition!.latitude,
+                            currentPosition!.longitude,
+                          ),
+                          width: 44,
+                          height: 44,
+                          child: const _UserLocationMarker(),
+                        ),
+                    ],
+                  ),
+                  const RichAttributionWidget(
+                    attributions: [
+                      TextSourceAttribution('OpenStreetMap contributors'),
+                    ],
+                  ),
+                ],
               ),
-              if (polylines.isNotEmpty) PolylineLayer(polylines: polylines),
-              MarkerLayer(
-                markers: [
-                  for (final location in activeLocations)
-                    Marker(
-                      point: LatLng(location.latitude, location.longitude),
-                      width: 54,
-                      height: 54,
-                      child: _BusMarker(
-                        bus: busById[location.busId]!,
-                        isSelected: location.busId == selectedBusId,
+              if (featuredBus != null)
+                Positioned(
+                  left: AppDimensions.spacingSmall,
+                  top: AppDimensions.spacingSmall,
+                  child: _RouteMapLabel(bus: featuredBus),
+                ),
+              Positioned(
+                right: AppDimensions.spacingSmall,
+                bottom: AppDimensions.spacingSmall,
+                child: FloatingActionButton.small(
+                  key: const Key('busMapLocateButton'),
+                  heroTag: null,
+                  tooltip: 'Locate current location',
+                  onPressed: isLocating ? null : onLocate,
+                  child: isLocating
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.my_location_rounded),
+                ),
+              ),
+              if (currentPosition != null)
+                Positioned(
+                  left: AppDimensions.spacingSmall,
+                  bottom: AppDimensions.spacingSmall,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusMedium,
+                      ),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: AppColors.shadow,
+                          blurRadius: 12,
+                          offset: Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppDimensions.spacingSmall,
+                        vertical: AppDimensions.spacingTiny,
+                      ),
+                      child: Text(
+                        'You are here',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
-                ],
-              ),
-              const RichAttributionWidget(
-                attributions: [
-                  TextSourceAttribution('OpenStreetMap contributors'),
-                ],
-              ),
+                  ),
+                ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  LatLng _mapCenter({
+    required BusLocation? selectedLocation,
+    required CampusBus? selectedBus,
+    required BusLocation? firstActiveLocation,
+  }) {
+    if (currentPosition != null) {
+      return LatLng(currentPosition!.latitude, currentPosition!.longitude);
+    }
+
+    if (selectedLocation != null) {
+      return LatLng(selectedLocation.latitude, selectedLocation.longitude);
+    }
+
+    if (selectedBus != null && selectedBus.routePoints.isNotEmpty) {
+      final point = selectedBus.routePoints.first;
+      return LatLng(point.latitude, point.longitude);
+    }
+
+    if (firstActiveLocation != null) {
+      return LatLng(
+        firstActiveLocation.latitude,
+        firstActiveLocation.longitude,
+      );
+    }
+
+    for (final bus in buses) {
+      if (bus.routePoints.isNotEmpty) {
+        final point = bus.routePoints.first;
+        return LatLng(point.latitude, point.longitude);
+      }
+    }
+
+    return const LatLng(campusDefaultLatitude, campusDefaultLongitude);
+  }
+}
+
+class _RouteMapLabel extends StatelessWidget {
+  const _RouteMapLabel({required this.bus});
+
+  final CampusBus bus;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 12,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.spacingSmall,
+          vertical: AppDimensions.spacingTiny,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.route_rounded,
+              color: AppColors.utmMaroon,
+              size: 18,
+            ),
+            const SizedBox(width: AppDimensions.spacingTiny),
+            Text(
+              bus.routeName,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -131,6 +305,36 @@ class _BusMarker extends StatelessWidget {
           Icons.directions_bus_filled_rounded,
           color: isSelected ? Colors.white : AppColors.utmMaroon,
           size: 24,
+        ),
+      ),
+    );
+  }
+}
+
+class _UserLocationMarker extends StatelessWidget {
+  const _UserLocationMarker();
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Your current location',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.utmGoldTint,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: Colors.white, width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.shadow,
+              blurRadius: 16,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.person_pin_circle_rounded,
+          color: AppColors.warning,
+          size: 22,
         ),
       ),
     );

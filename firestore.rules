@@ -607,17 +607,49 @@ service cloud.firestore {
         && point.longitude <= 180;
     }
 
+    function busDriverIdAtIsSafe(index) {
+      return request.resource.data.driverIds.size() <= index
+        || (
+          request.resource.data.driverIds[index] is string
+          && request.resource.data.driverIds[index].size() > 0
+        );
+    }
+
+    function busDriverIdsAreSafe() {
+      return request.resource.data.driverIds is list
+        && request.resource.data.driverIds.size() <= 10
+        && busDriverIdAtIsSafe(0)
+        && busDriverIdAtIsSafe(1)
+        && busDriverIdAtIsSafe(2)
+        && busDriverIdAtIsSafe(3)
+        && busDriverIdAtIsSafe(4)
+        && busDriverIdAtIsSafe(5)
+        && busDriverIdAtIsSafe(6)
+        && busDriverIdAtIsSafe(7)
+        && busDriverIdAtIsSafe(8)
+        && busDriverIdAtIsSafe(9);
+    }
+
+    function routePointAtIsSafe(index) {
+      return request.resource.data.routePoints.size() <= index
+        || routePointIsSafe(request.resource.data.routePoints[index]);
+    }
+
+    function busRoutePointsAreSafe() {
+      return request.resource.data.routePoints is list
+        && request.resource.data.routePoints.size() >= 2
+        && request.resource.data.routePoints.size() <= 30
+        && routePointAtIsSafe(0)
+        && routePointAtIsSafe(1)
+        && routePointAtIsSafe(request.resource.data.routePoints.size() - 1);
+    }
+
     function busValuesAreSafe(busId) {
       return busKeysAreSafe()
         && request.resource.data.busId == busId
         && request.resource.data.routeName is string
         && request.resource.data.routeName.size() > 0
-        && request.resource.data.driverIds is list
-        && request.resource.data.driverIds.size() <= 10
-        && request.resource.data.driverIds.all(
-          driverId,
-          driverId is string && driverId.size() > 0
-        )
+        && busDriverIdsAreSafe()
         && request.resource.data.status in ['active', 'inactive']
         && (
           request.resource.data.startName == null
@@ -627,13 +659,7 @@ service cloud.firestore {
           request.resource.data.endName == null
           || request.resource.data.endName is string
         )
-        && request.resource.data.routePoints is list
-        && request.resource.data.routePoints.size() >= 2
-        && request.resource.data.routePoints.size() <= 30
-        && request.resource.data.routePoints.all(
-          point,
-          routePointIsSafe(point)
-        );
+        && busRoutePointsAreSafe();
     }
 
     function busLocationKeysAreSafe() {
