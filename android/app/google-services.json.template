@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "88991080816",
+    "project_id": "utmgooo",
+    "storage_bucket": "utmgooo.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:88991080816:android:ecf5f821128bbbff4eefb5",
+        "android_client_info": {
+          "package_name": "com.example.utmgo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "REPLACE_WITH_RESTRICTED_ANDROID_FIREBASE_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -2,6 +2,8 @@
 
 This Phase 1 plan keeps Firebase usage compatible with the Spark Plan. The app uses Firebase Authentication for accounts and Cloud Firestore for app data. It does not use Cloud Functions, Firebase Storage, Google Maps SDK, paid APIs, or paid packages.
 
+Firebase API keys are local/runtime configuration, not tracked source. The Android `google-services.json` file stays ignored, and Flutter Web/Android API keys are supplied with `--dart-define` values described in `docs/firebase_local_setup.md`.
+
 ## Initial Collections
 
 - `users`: user profile documents keyed by Firebase Auth UID.
