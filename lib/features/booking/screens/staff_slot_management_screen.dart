@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_colors.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_dimensions.dart';
+import '../../../shared/layouts/utm_background_scaffold.dart';
+import '../../../shared/widgets/utm_feature_header.dart';
+import '../../../shared/widgets/utm_top_app_bar.dart';
 import '../models/facility.dart';
 import '../models/facility_slot_template.dart';
 import '../services/facility_booking_service.dart';
@@ -33,13 +36,13 @@ class _StaffSlotManagementScreenState extends State<StaffSlotManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Time slots')),
+    return UtmBackgroundScaffold(
+      appBar: const UtmTopAppBar(title: 'Time Slots'),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('addSlotTemplateButton'),
         onPressed: _selectedFacilityId == null ? null : _showSlotSheet,
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Add slot'),
+        label: const Text('Add Slot'),
       ),
       body: SafeArea(
         child: Align(
@@ -149,9 +152,9 @@ class _StaffSlotManagementScreenState extends State<StaffSlotManagementScreen> {
                         if (templates.isEmpty)
                           const _SlotMessageCard(
                             icon: Icons.event_busy_outlined,
-                            title: 'No slots',
+                            title: 'No Slots',
                             message:
-                                'Add a slot so students can book this facility.',
+                                'Add a time slot to make this facility available for booking.',
                           )
                         else
                           for (final template in templates)
@@ -549,50 +552,10 @@ class _SlotHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppColors.utmMaroon,
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacingLarge),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-              ),
-              child: const Icon(
-                Icons.event_available_outlined,
-                color: AppColors.utmGoldTint,
-              ),
-            ),
-            const SizedBox(width: AppDimensions.spacingMedium),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Booking slots',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimensions.spacingTiny),
-                  Text(
-                    '$slotCount slot${slotCount == 1 ? '' : 's'} configured',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.utmGoldTint,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    return UtmFeatureHeader(
+      icon: Icons.event_available_outlined,
+      title: 'Booking Availability',
+      subtitle: '$slotCount slot${slotCount == 1 ? '' : 's'} configured',
     );
   }
 }
@@ -610,13 +573,15 @@ class _SlotTemplateTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.all(AppDimensions.spacingMedium),
-        leading: const CircleAvatar(
-          backgroundColor: AppColors.utmGoldTint,
-          foregroundColor: AppColors.warning,
-          child: Icon(Icons.event_available_outlined),
+        leading: CircleAvatar(
+          backgroundColor: colors.brandGoldSoft,
+          foregroundColor: colors.warning,
+          child: const Icon(Icons.event_available_outlined),
         ),
         title: Text(slotTemplateScheduleLabel(template)),
         subtitle: Text(
@@ -699,10 +664,12 @@ class _SlotMessageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 42, color: AppColors.utmMaroon),
+        Icon(icon, size: 42, color: colors.brandMaroon),
         const SizedBox(height: AppDimensions.spacingMedium),
         Text(title, style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: AppDimensions.spacingSmall),

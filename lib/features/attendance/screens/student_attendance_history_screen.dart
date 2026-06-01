@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_colors.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_dimensions.dart';
+import '../../../shared/layouts/utm_background_scaffold.dart';
+import '../../../shared/widgets/utm_feature_header.dart';
+import '../../../shared/widgets/utm_top_app_bar.dart';
 import '../models/attendance_record.dart';
 import '../services/attendance_service.dart';
 
@@ -31,8 +34,8 @@ class _StudentAttendanceHistoryScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Attendance history')),
+    return UtmBackgroundScaffold(
+      appBar: const UtmTopAppBar(title: 'Attendance history'),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -90,31 +93,10 @@ class _HistorySummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppColors.utmMaroon,
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacingLarge),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'My attendance',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: AppDimensions.spacingSmall),
-            Text(
-              '$count verified record${count == 1 ? '' : 's'}',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppColors.utmGoldTint,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return UtmFeatureHeader(
+      icon: Icons.fact_check_outlined,
+      title: 'My attendance',
+      subtitle: '$count verified record${count == 1 ? '' : 's'}',
     );
   }
 }
@@ -126,6 +108,7 @@ class _HistoryRecordTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
     final courseCode = record.courseCode.isEmpty
         ? 'Attendance session'
         : record.courseCode;
@@ -135,10 +118,10 @@ class _HistoryRecordTile extends StatelessWidget {
       child: Card(
         child: ListTile(
           contentPadding: const EdgeInsets.all(AppDimensions.spacingMedium),
-          leading: const CircleAvatar(
-            backgroundColor: AppColors.utmGoldTint,
-            foregroundColor: AppColors.warning,
-            child: Icon(Icons.check_rounded),
+          leading: CircleAvatar(
+            backgroundColor: colors.brandGoldSoft,
+            foregroundColor: colors.warning,
+            child: const Icon(Icons.check_rounded),
           ),
           title: Text(courseCode),
           subtitle: Text('${_formatDate(record.scannedAt)} - $_checkLabel'),
@@ -187,13 +170,15 @@ class _HistoryMessageState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppDimensions.spacingLarge),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 42, color: AppColors.utmMaroon),
+            Icon(icon, size: 42, color: colors.brandMaroon),
             const SizedBox(height: AppDimensions.spacingMedium),
             Text(title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: AppDimensions.spacingSmall),

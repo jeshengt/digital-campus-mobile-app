@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../features/admin/screens/admin_dashboard_screen.dart';
+import '../../features/admin/screens/system_analytics_screen.dart';
 import '../../features/attendance/screens/lecturer_attendance_list_screen.dart';
 import '../../features/attendance/screens/lecturer_create_session_screen.dart';
 import '../../features/attendance/screens/lecturer_session_qr_screen.dart';
@@ -42,6 +43,7 @@ class AppRoutes {
   static const driverDashboard = '/driver';
   static const staffDashboard = '/staff';
   static const adminDashboard = '/admin';
+  static const adminSystemAnalytics = '/admin/analytics';
   static const lecturerCreateAttendance = '/attendance/lecturer/create';
   static const lecturerAttendanceQr = '/attendance/lecturer/qr';
   static const lecturerAttendanceList = '/attendance/lecturer/list';
@@ -76,6 +78,7 @@ class AppRoutes {
       driverDashboard: (_) => const DriverDashboardScreen(),
       staffDashboard: (_) => const StaffDashboardScreen(),
       adminDashboard: (_) => const AdminDashboardScreen(),
+      adminSystemAnalytics: (_) => const SystemAnalyticsScreen(),
       lecturerCreateAttendance: (_) => const LecturerCreateSessionScreen(),
       lecturerAttendanceQr: (_) => const LecturerSessionQrScreen(),
       lecturerAttendanceList: (_) => const LecturerAttendanceListScreen(),

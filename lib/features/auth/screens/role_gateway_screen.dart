@@ -4,7 +4,9 @@ import '../../../app/routes/app_routes.dart';
 import '../../../app/routes/role_router.dart';
 import '../../../features/profile/models/app_user.dart';
 import '../../../features/profile/services/user_profile_service.dart';
+import '../../../shared/layouts/utm_background_scaffold.dart';
 import '../../../shared/widgets/route_redirect.dart';
+import '../../../shared/widgets/utm_top_app_bar.dart';
 import '../services/auth_service.dart';
 
 class RoleGatewayScreen extends StatelessWidget {
@@ -22,15 +24,15 @@ class RoleGatewayScreen extends StatelessWidget {
       future: UserProfileService().getProfile(user.uid),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
+          return const UtmBackgroundScaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
         final profile = snapshot.data;
         if (profile == null) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Profile needed')),
+          return UtmBackgroundScaffold(
+            appBar: const UtmTopAppBar(title: 'Profile needed'),
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),

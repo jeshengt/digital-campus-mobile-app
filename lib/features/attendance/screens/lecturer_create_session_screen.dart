@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/routes/app_routes.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_dimensions.dart';
 import '../../../services/location/attendance_location_provider.dart';
+import '../../../shared/layouts/utm_background_scaffold.dart';
+import '../../../shared/widgets/utm_feature_header.dart';
 import '../../../shared/widgets/utm_primary_button.dart';
 import '../../../shared/widgets/utm_text_field.dart';
+import '../../../shared/widgets/utm_top_app_bar.dart';
 import '../services/attendance_service.dart';
 import '../utils/attendance_helpers.dart';
 
@@ -138,8 +141,10 @@ class _LecturerCreateSessionScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Create attendance')),
+    final colors = UtmThemeColors.of(context);
+
+    return UtmBackgroundScaffold(
+      appBar: const UtmTopAppBar(title: 'Create attendance'),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -200,9 +205,9 @@ class _LecturerCreateSessionScreenState
                     _DurationField(controller: _durationController),
                   const SizedBox(height: AppDimensions.spacingSmall),
                   Text(
-                    'Leave minutes blank for no expiry. End the session later from the attendance list.',
+                    'Leave minutes blank for no expiry.\nEnd the session later from the attendance list.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: colors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: AppDimensions.spacingLarge),
@@ -228,35 +233,11 @@ class _AttendanceHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.utmMaroon,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacingLarge),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Icon(Icons.fact_check_outlined, color: AppColors.utmGoldTint),
-            const SizedBox(height: AppDimensions.spacingMedium),
-            Text(
-              'Start a verified class check-in',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: AppDimensions.spacingSmall),
-            Text(
-              'Create a QR code now. Add location or expiry only when needed.',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.white.withValues(alpha: 0.82),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return const UtmFeatureHeader(
+      icon: Icons.fact_check_outlined,
+      title: 'Start a verified class check-in',
+      subtitle:
+          'Add location or expiry only when needed.',
     );
   }
 }
@@ -311,6 +292,8 @@ class _LocationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppDimensions.spacingMedium),
@@ -327,18 +310,17 @@ class _LocationCard extends StatelessWidget {
                 ),
                 Switch(
                   value: requiresLocation,
-                  activeThumbColor: AppColors.utmMaroon,
                   onChanged: onRequiresLocationChanged,
                 ),
               ],
             ),
             Text(
               requiresLocation
-                  ? 'Students must be inside the radius before attendance is saved.'
+                  ? 'Students must be inside the radius.'
                   : 'Students can validate after scanning the QR code only.',
               style: Theme.of(
                 context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
+              ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
             ),
             if (requiresLocation) ...[
               const SizedBox(height: AppDimensions.spacingMedium),

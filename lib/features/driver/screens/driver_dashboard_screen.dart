@@ -11,22 +11,14 @@ class DriverDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return RoleDashboardLayout(
       title: 'Bus Driver Console',
-      subtitle: 'Route status and careful live location broadcasting.',
+      subtitle: 'Careful live location broadcasting for assigned routes.',
       cards: [
         UtmInfoCard(
-          icon: Icons.radio_button_checked_rounded,
-          title: 'Broadcast status',
-          statusLabel: 'Live',
-          description: 'Toggle your assigned bus location sharing.',
+          icon: Icons.location_searching_rounded,
+          title: 'Broadcast Bus Location',
+          description: 'Manage location broadcasting for your assigned bus.',
           onTap: () =>
               Navigator.pushNamed(context, AppRoutes.driverBusBroadcast),
-        ),
-        const UtmInfoCard(
-          icon: Icons.speed_rounded,
-          title: 'Route telemetry',
-          statusLabel: 'Live',
-          description:
-              'Speed, heading, and assigned route details belong here.',
         ),
       ],
     );

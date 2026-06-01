@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_colors.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_dimensions.dart';
+import '../../../shared/layouts/utm_background_scaffold.dart';
+import '../../../shared/widgets/utm_feature_header.dart';
+import '../../../shared/widgets/utm_top_app_bar.dart';
 import '../models/facility.dart';
 import '../services/facility_booking_service.dart';
 import '../utils/booking_validation.dart';
@@ -32,8 +35,8 @@ class _AdminFacilityManagementScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Facility management')),
+    return UtmBackgroundScaffold(
+      appBar: const UtmTopAppBar(title: 'Facility management'),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('addFacilityButton'),
         onPressed: () => _showFacilitySheet(),
@@ -366,50 +369,11 @@ class _AdminFacilityHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppColors.utmMaroon,
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacingLarge),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-              ),
-              child: const Icon(
-                Icons.meeting_room_outlined,
-                color: AppColors.utmGoldTint,
-              ),
-            ),
-            const SizedBox(width: AppDimensions.spacingMedium),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Bookable facilities',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimensions.spacingTiny),
-                  Text(
-                    '$facilityCount facility${facilityCount == 1 ? '' : 'ies'} configured',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.utmGoldTint,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    return UtmFeatureHeader(
+      icon: Icons.meeting_room_outlined,
+      title: 'Bookable facilities',
+      subtitle:
+          '$facilityCount facility${facilityCount == 1 ? '' : 'ies'} configured',
     );
   }
 }
@@ -427,13 +391,15 @@ class _AdminFacilityTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.all(AppDimensions.spacingMedium),
-        leading: const CircleAvatar(
-          backgroundColor: AppColors.utmMaroonTint,
-          foregroundColor: AppColors.utmMaroon,
-          child: Icon(Icons.meeting_room_outlined),
+        leading: CircleAvatar(
+          backgroundColor: colors.brandMaroonSoft,
+          foregroundColor: colors.brandMaroon,
+          child: const Icon(Icons.meeting_room_outlined),
         ),
         title: Text(facility.name),
         subtitle: Text(
@@ -524,10 +490,12 @@ class _AdminFacilityMessageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 42, color: AppColors.utmMaroon),
+        Icon(icon, size: 42, color: colors.brandMaroon),
         const SizedBox(height: AppDimensions.spacingMedium),
         Text(title, style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: AppDimensions.spacingSmall),

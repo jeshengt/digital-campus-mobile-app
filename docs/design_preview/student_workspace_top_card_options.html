@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-option="compact">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UTM Go Student Workspace Top Card Options</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --utm-maroon: #800000;
+      --utm-maroon-deep: #5f0808;
+      --utm-gold: #c8a34a;
+      --bg: #f4f4f6;
+      --bg-2: #fff6f0;
+      --text: #1d1d1f;
+      --text-soft: #626874;
+      --text-muted: #858b96;
+      --surface:
+        linear-gradient(135deg, rgba(128, 0, 0, 0.13), rgba(200, 163, 74, 0.12) 52%, rgba(255, 255, 255, 0.26));
+      --icon-surface: rgba(128, 0, 0, 0.1);
+      --control-surface: rgba(255, 255, 255, 0.62);
+      --shadow: 0 22px 48px rgba(42, 22, 22, 0.1);
+      --deep-shadow: 0 28px 64px rgba(42, 22, 22, 0.13);
+    }
+
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --utm-maroon: #ff8a8a;
+      --utm-maroon-deep: #f06f6f;
+      --utm-gold: #e3c366;
+      --bg: #07080b;
+      --bg-2: #241317;
+      --text: #f5f5f7;
+      --text-soft: #c4c8d0;
+      --text-muted: #9299a6;
+      --surface:
+        linear-gradient(135deg, rgba(255, 138, 138, 0.11), rgba(227, 195, 102, 0.08) 54%, rgba(255, 255, 255, 0.04));
+      --icon-surface: rgba(255, 138, 138, 0.13);
+      --control-surface: rgba(255, 255, 255, 0.08);
+      --shadow: 0 24px 58px rgba(0, 0, 0, 0.26);
+      --deep-shadow: 0 28px 72px rgba(0, 0, 0, 0.34);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 14% 8%, rgba(128, 0, 0, 0.1), transparent 33rem),
+        radial-gradient(circle at 88% 14%, rgba(200, 163, 74, 0.1), transparent 30rem),
+        radial-gradient(circle at 64% 94%, rgba(128, 0, 0, 0.05), transparent 34rem),
+        linear-gradient(135deg, var(--bg), var(--bg-2) 48%, var(--bg));
+    }
+
+    html[data-theme="dark"] body {
+      background:
+        radial-gradient(circle at 14% 8%, rgba(255, 138, 138, 0.1), transparent 31rem),
+        radial-gradient(circle at 88% 14%, rgba(227, 195, 102, 0.07), transparent 29rem),
+        radial-gradient(circle at 64% 94%, rgba(255, 138, 138, 0.07), transparent 34rem),
+        linear-gradient(135deg, var(--bg), var(--bg-2) 50%, var(--bg));
+    }
+
+    button {
+      border: 0;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    button:focus-visible {
+      outline: 3px solid rgba(128, 0, 0, 0.34);
+      outline-offset: 4px;
+    }
+
+    .page {
+      width: min(100%, 1180px);
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .toolbar {
+      display: grid;
+      gap: 14px;
+      margin: 0 auto 22px;
+      max-width: 980px;
+    }
+
+    .toolbar-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .segmented {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      padding: 6px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.48);
+      backdrop-filter: blur(18px);
+    }
+
+    html[data-theme="dark"] .segmented {
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    .chip {
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 14px;
+      background: transparent;
+      color: var(--text-soft);
+      font-size: 13px;
+      font-weight: 850;
+      transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+    }
+
+    .chip:hover {
+      transform: translateY(-1px);
+    }
+
+    .chip[aria-pressed="true"] {
+      background: var(--utm-maroon);
+      color: #fff;
+    }
+
+    html[data-theme="dark"] .chip[aria-pressed="true"] {
+      color: #1b0b0c;
+    }
+
+    .caption {
+      margin: 0;
+      color: var(--text-soft);
+      font-size: 13px;
+      font-weight: 750;
+      text-align: center;
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 540px) minmax(300px, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+
+    .phone {
+      width: min(100%, 540px);
+      margin: 0 auto;
+      padding: clamp(18px, 5vw, 36px);
+      border-radius: 34px;
+      background: rgba(255, 255, 255, 0.22);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24);
+      backdrop-filter: blur(12px);
+    }
+
+    html[data-theme="dark"] .phone {
+      background: rgba(255, 255, 255, 0.04);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    }
+
+    .screen {
+      display: grid;
+      gap: 18px;
+    }
+
+    .glass {
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(24px);
+    }
+
+    .top-option {
+      display: none;
+      border-radius: 28px;
+      overflow: hidden;
+    }
+
+    html[data-option="compact"] .top-option[data-panel="compact"],
+    html[data-option="welcome"] .top-option[data-panel="welcome"],
+    html[data-option="logo"] .top-option[data-panel="logo"] {
+      display: block;
+    }
+
+    .compact-card {
+      display: grid;
+      grid-template-columns: 62px minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      min-height: 104px;
+      padding: 16px;
+    }
+
+    .compact-actions,
+    .welcome-actions,
+    .logo-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .logo {
+      display: grid;
+      place-items: center;
+    }
+
+    .logo img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      filter: drop-shadow(0 12px 18px rgba(128, 0, 0, 0.08));
+    }
+
+    .compact-card .logo img {
+      width: 58px;
+    }
+
+    .kicker {
+      margin: 0 0 6px;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: 0;
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(24px, 7vw, 32px);
+      line-height: 1;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+
+    .compact-card .title {
+      max-width: 11ch;
+      font-size: clamp(21px, 5.8vw, 28px);
+    }
+
+    .subtitle {
+      margin: 7px 0 0;
+      color: var(--text-soft);
+      font-size: 14px;
+      line-height: 1.25;
+      font-weight: 720;
+    }
+
+    .icon-button {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      background: var(--control-surface);
+      box-shadow: 0 14px 28px rgba(32, 18, 22, 0.08);
+      transition: transform 180ms ease, background 180ms ease;
+    }
+
+    html[data-theme="dark"] .icon-button {
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.2);
+    }
+
+    .icon-button:hover {
+      transform: translateY(-1px);
+      background: var(--icon-surface);
+    }
+
+    .icon {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      stroke-width: 2.1;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    .welcome-card {
+      display: grid;
+      gap: 20px;
+      min-height: 166px;
+      padding: 22px;
+    }
+
+    .welcome-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .welcome-card .logo img {
+      width: 64px;
+    }
+
+    .welcome-copy {
+      display: grid;
+      gap: 8px;
+    }
+
+    .welcome-copy .title {
+      max-width: 11ch;
+    }
+
+    .mini-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      color: var(--text-soft);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--utm-gold);
+      box-shadow: 0 0 0 5px rgba(200, 163, 74, 0.13);
+    }
+
+    .logo-first-card {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: center;
+      min-height: 126px;
+      padding: 18px;
+    }
+
+    .logo-lockup {
+      display: grid;
+      grid-template-columns: 88px minmax(0, 1fr);
+      gap: 16px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .logo-first-card .logo img {
+      width: 86px;
+    }
+
+    .logo-first-card .title {
+      font-size: clamp(20px, 5.2vw, 27px);
+    }
+
+    .scan-card,
+    .action-card {
+      border-radius: 28px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(22px);
+    }
+
+    .scan-card {
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr);
+      gap: 16px;
+      align-items: center;
+      min-height: 112px;
+      padding: 18px;
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .action-card {
+      display: grid;
+      align-content: space-between;
+      min-height: 132px;
+      padding: 18px;
+    }
+
+    .action-card.wide {
+      grid-column: 1 / -1;
+      grid-template-columns: 56px minmax(0, 1fr);
+      gap: 16px;
+      align-items: center;
+      min-height: 104px;
+      align-content: center;
+    }
+
+    .action-icon {
+      display: grid;
+      place-items: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      color: var(--utm-maroon-deep);
+      background: var(--icon-surface);
+    }
+
+    .action-title {
+      margin: 0;
+      font-size: 19px;
+      line-height: 1.08;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+
+    .action-subtitle {
+      margin: 5px 0 0;
+      color: var(--text-soft);
+      font-size: 14px;
+      line-height: 1.25;
+      font-weight: 620;
+    }
+
+    .option-notes {
+      display: grid;
+      gap: 14px;
+      position: sticky;
+      top: 18px;
+    }
+
+    .note-card {
+      display: none;
+      padding: 22px;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.48);
+      box-shadow: var(--deep-shadow);
+      backdrop-filter: blur(20px);
+    }
+
+    html[data-theme="dark"] .note-card {
+      background: rgba(255, 255, 255, 0.07);
+    }
+
+    html[data-option="compact"] .note-card[data-note="compact"],
+    html[data-option="welcome"] .note-card[data-note="welcome"],
+    html[data-option="logo"] .note-card[data-note="logo"] {
+      display: block;
+    }
+
+    .note-card h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 48px);
+      line-height: 0.98;
+      letter-spacing: 0;
+    }
+
+    .note-card p {
+      margin: 14px 0 0;
+      color: var(--text-soft);
+      font-size: 15px;
+      line-height: 1.55;
+      font-weight: 650;
+    }
+
+    .note-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .tag {
+      min-height: 34px;
+      padding: 8px 11px;
+      border-radius: 12px;
+      color: var(--utm-maroon-deep);
+      background: var(--icon-surface);
+      font-size: 12px;
+      font-weight: 850;
+    }
+
+    @media (max-width: 860px) {
+      .preview-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .option-notes {
+        position: static;
+        order: -1;
+      }
+    }
+
+    @media (max-width: 460px) {
+      .page {
+        padding: 16px;
+      }
+
+      .phone {
+        padding: 12px;
+        border-radius: 28px;
+      }
+
+      .compact-card {
+        grid-template-columns: 52px minmax(0, 1fr) auto;
+        gap: 10px;
+        padding: 14px;
+      }
+
+      .compact-card .logo img {
+        width: 50px;
+      }
+
+      .compact-actions,
+      .welcome-actions,
+      .logo-actions {
+        gap: 8px;
+      }
+
+      .icon-button {
+        width: 44px;
+        height: 44px;
+        border-radius: 15px;
+      }
+
+      .welcome-card,
+      .logo-first-card {
+        padding: 16px;
+      }
+
+      .welcome-card .logo img {
+        width: 58px;
+      }
+
+      .logo-first-card {
+        grid-template-columns: 1fr;
+      }
+
+      .logo-actions {
+        justify-content: flex-end;
+      }
+
+      .logo-lockup {
+        grid-template-columns: 72px minmax(0, 1fr);
+        gap: 12px;
+      }
+
+      .logo-first-card .logo img {
+        width: 72px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="toolbar" aria-label="Preview controls">
+      <div class="toolbar-row">
+        <div class="segmented" role="group" aria-label="Top card options">
+          <button class="chip" type="button" data-set-option="compact" aria-pressed="true">Compact Glass Bar</button>
+          <button class="chip" type="button" data-set-option="welcome" aria-pressed="false">Welcome Header</button>
+          <button class="chip" type="button" data-set-option="logo" aria-pressed="false">Logo-First Header</button>
+        </div>
+        <div class="segmented" role="group" aria-label="Theme">
+          <button class="chip" type="button" data-set-theme="light" aria-pressed="true">Light</button>
+          <button class="chip" type="button" data-set-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+      </div>
+      <p class="caption">Student workspace top-card approval preview. Flutter app files stay unchanged.</p>
+    </section>
+
+    <section class="preview-grid" aria-label="Student workspace preview">
+      <div class="phone">
+        <div class="screen">
+          <article class="top-option glass" data-panel="compact" aria-label="Compact Glass Bar option">
+            <div class="compact-card">
+              <div class="logo">
+                <img src="../../assets/images/utmgologonobg.png" alt="UTM Go">
+              </div>
+              <div>
+                <p class="kicker">UTM Go</p>
+                <h2 class="title">Student workspace</h2>
+              </div>
+              <div class="compact-actions" aria-label="Workspace actions">
+                <button class="icon-button" type="button" aria-label="Open profile">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+                </button>
+                <button class="icon-button" type="button" aria-label="Logout">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <article class="top-option glass" data-panel="welcome" aria-label="Welcome Header option">
+            <div class="welcome-card">
+              <div class="welcome-top">
+                <div class="logo">
+                  <img src="../../assets/images/utmgologonobg.png" alt="UTM Go">
+                </div>
+                <div class="welcome-actions" aria-label="Workspace actions">
+                  <button class="icon-button" type="button" aria-label="Open profile">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+                  </button>
+                  <button class="icon-button" type="button" aria-label="Logout">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+                  </button>
+                </div>
+              </div>
+              <div class="welcome-copy">
+                <p class="kicker">Student workspace</p>
+                <h2 class="title">Ready for campus</h2>
+                <div class="mini-line"><span class="dot" aria-hidden="true"></span><span>Attendance, bookings, and buses</span></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="top-option glass" data-panel="logo" aria-label="Logo-First Header option">
+            <div class="logo-first-card">
+              <div class="logo-lockup">
+                <div class="logo">
+                  <img src="../../assets/images/utmgologonobg.png" alt="UTM Go">
+                </div>
+                <div>
+                  <p class="kicker">Student workspace</p>
+                  <h2 class="title">UTM Go</h2>
+                  <p class="subtitle">Campus tools in one place.</p>
+                </div>
+              </div>
+              <div class="logo-actions" aria-label="Workspace actions">
+                <button class="icon-button" type="button" aria-label="Open profile">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+                </button>
+                <button class="icon-button" type="button" aria-label="Logout">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+                </button>
+              </div>
+            </div>
+          </article>
+
+          <article class="scan-card" aria-label="Scan QR action">
+            <div class="action-icon">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3h6v6H3z"/><path d="M15 3h6v6h-6z"/><path d="M3 15h6v6H3z"/><path d="M15 15h2v2h-2z"/><path d="M19 15h2v6h-6v-2"/><path d="M12 7v3"/><path d="M7 12h5"/><path d="M12 12v4"/></svg>
+            </div>
+            <div>
+              <p class="kicker">Attendance</p>
+              <h2 class="action-title">Scan QR</h2>
+              <p class="action-subtitle">Open scanner for attendance QR code.</p>
+            </div>
+          </article>
+
+          <div class="action-grid" aria-label="Student actions">
+            <article class="action-card">
+              <div class="action-icon">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 10h18"/><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M9 16l2 2 4-5"/></svg>
+              </div>
+              <div>
+                <h2 class="action-title">Book a facility</h2>
+                <p class="action-subtitle">Find available slots.</p>
+              </div>
+            </article>
+            <article class="action-card">
+              <div class="action-icon">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 17h12"/><path d="M6 17v3"/><path d="M18 17v3"/><rect x="5" y="3" width="14" height="14" rx="3"/><path d="M8 8h8"/><path d="M8 13h.01"/><path d="M16 13h.01"/></svg>
+              </div>
+              <div>
+                <h2 class="action-title">Live buses</h2>
+                <p class="action-subtitle">Track campus routes.</p>
+              </div>
+            </article>
+            <article class="action-card wide">
+              <div class="action-icon">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11l2 2 4-5"/><path d="M9 17h6"/><path d="M5 3h14v18H5z"/><path d="M9 7h1"/></svg>
+              </div>
+              <div>
+                <h2 class="action-title">Attendance history</h2>
+                <p class="action-subtitle">Review validated attendance records.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+
+      <aside class="option-notes" aria-label="Selected option notes">
+        <article class="note-card" data-note="compact">
+          <h1>Compact Glass Bar</h1>
+          <p>A cleaner version of the current top card: short, balanced, and easy to scan. It keeps the student screen light while giving the profile and logout actions stronger icon targets.</p>
+          <div class="note-tags">
+            <span class="tag">Recommended</span>
+            <span class="tag">Most minimal</span>
+            <span class="tag">Closest to Flutter layout</span>
+          </div>
+        </article>
+        <article class="note-card" data-note="welcome">
+          <h1>Welcome Header</h1>
+          <p>A warmer header with more presence. It still avoids counters and clutter, but adds a softer daily workspace feeling above the action cards.</p>
+          <div class="note-tags">
+            <span class="tag">More expressive</span>
+            <span class="tag">Taller card</span>
+            <span class="tag">Friendly tone</span>
+          </div>
+        </article>
+        <article class="note-card" data-note="logo">
+          <h1>Logo-First Header</h1>
+          <p>A brand-led option where UTM Go becomes the first visual signal. Good if the dashboard should feel more official and branded without adding extra information.</p>
+          <div class="note-tags">
+            <span class="tag">Brand-focused</span>
+            <span class="tag">Official feel</span>
+            <span class="tag">Compact actions</span>
+          </div>
+        </article>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const root = document.documentElement;
+
+    function setPressed(selector, activeValue, attrName) {
+      document.querySelectorAll(selector).forEach((button) => {
+        button.setAttribute('aria-pressed', button.dataset[attrName] === activeValue ? 'true' : 'false');
+      });
+    }
+
+    document.querySelectorAll('[data-set-option]').forEach((button) => {
+      button.addEventListener('click', () => {
+        root.dataset.option = button.dataset.setOption;
+        setPressed('[data-set-option]', button.dataset.setOption, 'setOption');
+      });
+    });
+
+    document.querySelectorAll('[data-set-theme]').forEach((button) => {
+      button.addEventListener('click', () => {
+        root.dataset.theme = button.dataset.setTheme;
+        setPressed('[data-set-theme]', button.dataset.setTheme, 'setTheme');
+      });
+    });
+  </script>
+</body>
+</html>

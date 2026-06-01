@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../../../core/constants/app_colors.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_dimensions.dart';
 import '../models/bus_location.dart';
 import '../models/campus_bus.dart';
@@ -29,6 +29,7 @@ class BusMapPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
     final busById = {for (final bus in buses) bus.busId: bus};
     final activeLocations = locations
         .where((location) => busById.containsKey(location.busId))
@@ -64,8 +65,8 @@ class BusMapPanel extends StatelessWidget {
               LatLng(point.latitude, point.longitude),
           ],
           color: bus.busId == selectedBusId
-              ? AppColors.utmMaroon
-              : AppColors.utmGold,
+              ? colors.brandMaroon
+              : colors.brandGold,
           strokeWidth: bus.busId == selectedBusId ? 5 : 3,
         ),
       );
@@ -145,12 +146,12 @@ class BusMapPanel extends StatelessWidget {
                   tooltip: 'Locate current location',
                   onPressed: isLocating ? null : onLocate,
                   child: isLocating
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: colors.onBrand,
                           ),
                         )
                       : const Icon(Icons.my_location_rounded),
@@ -162,13 +163,14 @@ class BusMapPanel extends StatelessWidget {
                   bottom: AppDimensions.spacingSmall,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: colors.glassStrong,
                       borderRadius: BorderRadius.circular(
                         AppDimensions.radiusMedium,
                       ),
-                      boxShadow: const [
+                      border: Border.all(color: colors.glassBorder),
+                      boxShadow: [
                         BoxShadow(
-                          color: AppColors.shadow,
+                          color: colors.shadow,
                           blurRadius: 12,
                           offset: Offset(0, 6),
                         ),
@@ -182,7 +184,7 @@ class BusMapPanel extends StatelessWidget {
                       child: Text(
                         'You are here',
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: AppColors.textSecondary,
+                          color: colors.textSecondary,
                         ),
                       ),
                     ),
@@ -238,16 +240,15 @@ class _RouteMapLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: colors.glassStrong,
         borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 12,
-            offset: Offset(0, 6),
-          ),
+        border: Border.all(color: colors.glassBorder),
+        boxShadow: [
+          BoxShadow(color: colors.shadow, blurRadius: 12, offset: Offset(0, 6)),
         ],
       ),
       child: Padding(
@@ -258,16 +259,12 @@ class _RouteMapLabel extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.route_rounded,
-              color: AppColors.utmMaroon,
-              size: 18,
-            ),
+            Icon(Icons.route_rounded, color: colors.brandMaroon, size: 18),
             const SizedBox(width: AppDimensions.spacingTiny),
             Text(
               bus.routeName,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: AppColors.textPrimary,
+                color: colors.textPrimary,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -286,16 +283,18 @@ class _BusMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Tooltip(
       message: bus.routeName,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.utmMaroon : AppColors.surface,
+          color: isSelected ? colors.brandMaroon : colors.glassStrong,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: AppColors.utmMaroon, width: 2),
-          boxShadow: const [
+          border: Border.all(color: colors.brandMaroon, width: 2),
+          boxShadow: [
             BoxShadow(
-              color: AppColors.shadow,
+              color: colors.shadow,
               blurRadius: 18,
               offset: Offset(0, 8),
             ),
@@ -303,7 +302,7 @@ class _BusMarker extends StatelessWidget {
         ),
         child: Icon(
           Icons.directions_bus_filled_rounded,
-          color: isSelected ? Colors.white : AppColors.utmMaroon,
+          color: isSelected ? colors.onBrand : colors.brandMaroon,
           size: 24,
         ),
       ),
@@ -316,24 +315,26 @@ class _UserLocationMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Tooltip(
       message: 'Your current location',
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: AppColors.utmGoldTint,
+          color: colors.brandGoldSoft,
           borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: const [
+          border: Border.all(color: colors.glassBorder, width: 2),
+          boxShadow: [
             BoxShadow(
-              color: AppColors.shadow,
+              color: colors.shadow,
               blurRadius: 16,
               offset: Offset(0, 8),
             ),
           ],
         ),
-        child: const Icon(
+        child: Icon(
           Icons.person_pin_circle_rounded,
-          color: AppColors.warning,
+          color: colors.warning,
           size: 22,
         ),
       ),

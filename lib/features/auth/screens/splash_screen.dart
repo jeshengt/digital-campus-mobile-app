@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../../app/routes/app_routes.dart';
+import '../../../shared/layouts/utm_background_scaffold.dart';
 import '../../../shared/widgets/route_redirect.dart';
 import '../services/auth_service.dart';
 
@@ -14,7 +15,7 @@ class SplashScreen extends StatelessWidget {
       stream: AuthService().authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
+          return const UtmBackgroundScaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }

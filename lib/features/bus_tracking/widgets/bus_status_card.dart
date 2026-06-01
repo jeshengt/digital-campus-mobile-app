@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_colors.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_dimensions.dart';
 import '../models/bus_location.dart';
 import '../models/campus_bus.dart';
@@ -22,6 +22,7 @@ class BusStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
     final live = location?.isBroadcasting ?? false;
     final eta = formatEta(
       location == null
@@ -33,7 +34,7 @@ class BusStatusCard extends StatelessWidget {
       button: onTap != null,
       label: '${bus.routeName}, ${live ? 'live' : 'offline'}',
       child: Card(
-        color: isSelected ? AppColors.utmMaroonTint : AppColors.surface,
+        color: isSelected ? colors.brandMaroonSoft : colors.surface,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
@@ -47,15 +48,15 @@ class BusStatusCard extends StatelessWidget {
                   height: 44,
                   decoration: BoxDecoration(
                     color: live
-                        ? AppColors.success.withValues(alpha: 0.1)
-                        : AppColors.surfaceMuted,
+                        ? colors.success.withValues(alpha: 0.12)
+                        : colors.mutedSurface,
                     borderRadius: BorderRadius.circular(
                       AppDimensions.radiusMedium,
                     ),
                   ),
                   child: Icon(
                     Icons.directions_bus_filled_rounded,
-                    color: live ? AppColors.success : AppColors.textSecondary,
+                    color: live ? colors.success : colors.textSecondary,
                   ),
                 ),
                 const SizedBox(width: AppDimensions.spacingMedium),
@@ -117,6 +118,8 @@ class _LivePill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDimensions.spacingSmall,
@@ -124,14 +127,14 @@ class _LivePill extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: live
-            ? AppColors.success.withValues(alpha: 0.1)
-            : AppColors.border,
+            ? colors.success.withValues(alpha: 0.12)
+            : colors.mutedSurface,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         live ? 'Live' : 'Offline',
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: live ? AppColors.success : AppColors.textSecondary,
+          color: live ? colors.success : colors.textSecondary,
           fontSize: 11,
         ),
       ),
@@ -147,24 +150,26 @@ class _MetricChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDimensions.spacingSmall,
         vertical: AppDimensions.spacingTiny,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
+        color: colors.mutedSurface,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: AppColors.textSecondary),
+          Icon(icon, size: 14, color: colors.textSecondary),
           const SizedBox(width: AppDimensions.spacingTiny),
           Text(
             label,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: AppColors.textSecondary,
+              color: colors.textSecondary,
               fontSize: 11,
             ),
           ),

@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../../../core/constants/app_colors.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_dimensions.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../shared/layouts/utm_background_scaffold.dart';
+import '../../../shared/widgets/utm_feature_header.dart';
+import '../../../shared/widgets/utm_top_app_bar.dart';
 import '../../profile/models/app_user.dart';
 import '../models/bus_route_point.dart';
 import '../models/campus_bus.dart';
@@ -35,8 +38,8 @@ class _AdminBusManagementScreenState extends State<AdminBusManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Bus management')),
+    return UtmBackgroundScaffold(
+      appBar: const UtmTopAppBar(title: 'Bus management'),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('addBusButton'),
         onPressed: () => _showBusSheet(),
@@ -515,6 +518,8 @@ class _DriverAssignmentSheetState extends State<_DriverAssignmentSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return SafeArea(
       child: Padding(
         padding: EdgeInsets.only(
@@ -551,7 +556,7 @@ class _DriverAssignmentSheetState extends State<_DriverAssignmentSheet> {
             else
               DecoratedBox(
                 decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: colors.glassBorder),
                   borderRadius: BorderRadius.circular(
                     AppDimensions.radiusMedium,
                   ),
@@ -648,19 +653,18 @@ class _AssignmentSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
+        color: colors.mutedSurface,
         borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
       ),
       child: Padding(
         padding: const EdgeInsets.all(AppDimensions.spacingMedium),
         child: Row(
           children: [
-            const Icon(
-              Icons.assignment_ind_outlined,
-              color: AppColors.utmMaroon,
-            ),
+            Icon(Icons.assignment_ind_outlined, color: colors.brandMaroon),
             const SizedBox(width: AppDimensions.spacingMedium),
             Expanded(
               child: Column(
@@ -669,7 +673,7 @@ class _AssignmentSummary extends StatelessWidget {
                   Text(
                     'Current assignment',
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: AppColors.textSecondary,
+                      color: colors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: AppDimensions.spacingTiny),
@@ -715,6 +719,7 @@ class _RoutePointPickerState extends State<_RoutePointPicker> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
     final center = widget.routePoints.isEmpty
         ? const LatLng(campusDefaultLatitude, campusDefaultLongitude)
         : LatLng(
@@ -768,7 +773,7 @@ class _RoutePointPickerState extends State<_RoutePointPicker> {
                       polylines: [
                         Polyline(
                           points: polylinePoints,
-                          color: AppColors.utmMaroon,
+                          color: colors.brandMaroon,
                           strokeWidth: 4,
                         ),
                       ],
@@ -818,12 +823,12 @@ class _RoutePointPickerState extends State<_RoutePointPicker> {
                 tooltip: 'Locate current location',
                 onPressed: _isLocating ? null : _locateCurrentPosition,
                 child: _isLocating
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: colors.onBrand,
                         ),
                       )
                     : const Icon(Icons.my_location_rounded),
@@ -884,26 +889,24 @@ class _RouteCurrentLocationMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Tooltip(
       message: 'Current location',
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: AppColors.utmGoldTint,
+          color: colors.brandGoldSoft,
           borderRadius: BorderRadius.circular(19),
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: const [
+          border: Border.all(color: colors.glassBorder, width: 2),
+          boxShadow: [
             BoxShadow(
-              color: AppColors.shadow,
+              color: colors.shadow,
               blurRadius: 12,
               offset: Offset(0, 6),
             ),
           ],
         ),
-        child: const Icon(
-          Icons.my_location_rounded,
-          color: AppColors.warning,
-          size: 20,
-        ),
+        child: Icon(Icons.my_location_rounded, color: colors.warning, size: 20),
       ),
     );
   }
@@ -916,17 +919,15 @@ class _RoutePointMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.utmMaroon,
+        color: colors.brandMaroon,
         borderRadius: BorderRadius.circular(17),
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 12,
-            offset: Offset(0, 6),
-          ),
+        border: Border.all(color: colors.glassBorder, width: 2),
+        boxShadow: [
+          BoxShadow(color: colors.shadow, blurRadius: 12, offset: Offset(0, 6)),
         ],
       ),
       child: Center(
@@ -934,7 +935,7 @@ class _RoutePointMarker extends StatelessWidget {
           number.toString(),
           style: Theme.of(
             context,
-          ).textTheme.labelLarge?.copyWith(color: Colors.white, fontSize: 12),
+          ).textTheme.labelLarge?.copyWith(color: colors.onBrand, fontSize: 12),
         ),
       ),
     );
@@ -948,50 +949,10 @@ class _AdminBusHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppColors.utmMaroon,
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacingLarge),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-              ),
-              child: const Icon(
-                Icons.route_rounded,
-                color: AppColors.utmGoldTint,
-              ),
-            ),
-            const SizedBox(width: AppDimensions.spacingMedium),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Campus bus routes',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimensions.spacingTiny),
-                  Text(
-                    '$busCount route${busCount == 1 ? '' : 's'} configured',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.utmGoldTint,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    return UtmFeatureHeader(
+      icon: Icons.route_rounded,
+      title: 'Campus bus routes',
+      subtitle: '$busCount route${busCount == 1 ? '' : 's'} configured',
     );
   }
 }
@@ -1013,6 +974,8 @@ class _AdminBusTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppDimensions.spacingMedium),
@@ -1023,12 +986,12 @@ class _AdminBusTile extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: AppColors.utmMaroonTint,
+                color: colors.brandMaroonSoft,
                 borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.directions_bus_filled_rounded,
-                color: AppColors.utmMaroon,
+                color: colors.brandMaroon,
               ),
             ),
             const SizedBox(width: AppDimensions.spacingMedium),
@@ -1089,19 +1052,21 @@ class _BusAdminChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDimensions.spacingSmall,
         vertical: AppDimensions.spacingTiny,
       ),
       decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
+        color: colors.mutedSurface,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-          color: AppColors.textSecondary,
+          color: colors.textSecondary,
           fontSize: 11,
         ),
       ),
@@ -1174,10 +1139,12 @@ class _AdminBusMessageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 42, color: AppColors.utmMaroon),
+        Icon(icon, size: 42, color: colors.brandMaroon),
         const SizedBox(height: AppDimensions.spacingMedium),
         Text(title, style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: AppDimensions.spacingSmall),

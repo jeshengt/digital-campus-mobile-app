@@ -158,7 +158,7 @@ void main() {
 
       await tester.drag(find.byType(ListView), const Offset(0, -500));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Bus management'));
+      await tester.tap(find.text('Bus Routes'));
       await tester.pumpAndSettle();
 
       expect(find.text('Bus management route opened'), findsOneWidget);
@@ -179,7 +179,7 @@ void main() {
 
       await tester.drag(find.byType(ListView), const Offset(0, -500));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Live bus tracking'));
+      await tester.tap(find.text('Track Buses'));
       await tester.pumpAndSettle();
 
       expect(find.text('Bus map route opened'), findsOneWidget);
@@ -200,7 +200,7 @@ void main() {
 
       await tester.drag(find.byType(ListView), const Offset(0, -500));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Live bus tracking'));
+      await tester.tap(find.text('Track Buses'));
       await tester.pumpAndSettle();
 
       expect(find.text('Bus map route opened'), findsOneWidget);
@@ -219,10 +219,27 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Broadcast status'));
+      await tester.tap(find.text('Broadcast Bus Location'));
       await tester.pumpAndSettle();
 
       expect(find.text('Broadcast route opened'), findsOneWidget);
+    });
+
+    testWidgets('driver dashboard hides unused route telemetry card', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          routes: {
+            AppRoutes.driverDashboard: (_) => const DriverDashboardScreen(),
+          },
+          initialRoute: AppRoutes.driverDashboard,
+        ),
+      );
+
+      expect(find.text('Broadcast Bus Location'), findsOneWidget);
+      expect(find.text('Route telemetry'), findsNothing);
     });
 
     testWidgets('bus map shows empty bus state', (tester) async {
@@ -392,13 +409,14 @@ void main() {
         300,
       );
       await tester.pumpAndSettle();
-      expect(find.text('Current location not loaded'), findsOneWidget);
+      expect(find.text('Current location unavailable'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('driverLocateButton')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Current location ready'), findsOneWidget);
-      expect(find.text('1.55830, 103.63710'), findsOneWidget);
+      expect(find.text('Ready'), findsOneWidget);
+      expect(find.text('1.55830, 103.63710'), findsNothing);
+      expect(find.byKey(const Key('driverLocateButton')), findsOneWidget);
       expect(find.text('Current location updated.'), findsOneWidget);
     });
 

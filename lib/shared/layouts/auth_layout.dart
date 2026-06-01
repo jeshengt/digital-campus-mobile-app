@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../core/constants/app_colors.dart';
+import '../../app/theme/app_theme.dart';
 import '../../core/constants/app_dimensions.dart';
 import '../../core/constants/app_strings.dart';
+import 'utm_background_scaffold.dart';
+import '../widgets/utm_glass_panel.dart';
 
 class AuthLayout extends StatelessWidget {
   const AuthLayout({
@@ -18,8 +20,7 @@ class AuthLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
+    return UtmBackgroundScaffold(
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -32,20 +33,10 @@ class AuthLayout extends StatelessWidget {
                     constraints: const BoxConstraints(
                       maxWidth: AppDimensions.maxContentWidth,
                     ),
-                    child: Semantics(
-                      container: true,
-                      label: '$title, ${AppStrings.appName}',
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _AuthBrandHeader(title: title, subtitle: subtitle),
-                          const SizedBox(
-                            height: AppDimensions.spacingExtraLarge,
-                          ),
-                          child,
-                        ],
-                      ),
+                    child: _AuthPanel(
+                      title: title,
+                      subtitle: subtitle,
+                      child: child,
                     ),
                   ),
                 ),
@@ -58,40 +49,40 @@ class AuthLayout extends StatelessWidget {
   }
 }
 
-class _AuthBrandHeader extends StatelessWidget {
-  const _AuthBrandHeader({required this.title, required this.subtitle});
+class _AuthPanel extends StatelessWidget {
+  const _AuthPanel({
+    required this.title,
+    required this.subtitle,
+    required this.child,
+  });
 
   static const _logoAsset = 'assets/images/utmgologonobg.png';
 
   final String title;
   final String subtitle;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
-        border: Border.all(color: AppColors.border),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 26,
-            offset: Offset(0, 16),
-          ),
-        ],
-      ),
-      child: Padding(
+    final colors = UtmThemeColors.of(context);
+
+    return Semantics(
+      container: true,
+      label: '$title, ${AppStrings.appName}',
+      child: UtmGlassPanel(
         padding: const EdgeInsets.all(AppDimensions.spacingLarge),
+        backgroundColor: colors.glassStrong,
+        borderRadius: AppDimensions.radiusExtraLarge,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Semantics(
               image: true,
               label: '${AppStrings.appName} logo',
               child: SizedBox(
-                width: 180,
-                height: 104,
+                width: 280,
+                height: 96,
                 child: Image.asset(
                   _logoAsset,
                   fit: BoxFit.contain,
@@ -103,14 +94,20 @@ class _AuthBrandHeader extends StatelessWidget {
             Text(
               title,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.headlineMedium,
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: AppDimensions.spacingSmall),
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: colors.textSecondary),
             ),
+            const SizedBox(height: AppDimensions.spacingExtraLarge),
+            child,
           ],
         ),
       ),

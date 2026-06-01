@@ -512,7 +512,7 @@ void main() {
 
       await tester.drag(find.byType(ListView), const Offset(0, -500));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Facility booking'));
+      await tester.tap(find.text('Book a Facility'));
       await tester.pumpAndSettle();
 
       expect(find.text('Student booking route opened'), findsOneWidget);
@@ -531,7 +531,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Booking requests'));
+      await tester.tap(find.text('Booking Requests'));
       await tester.pumpAndSettle();
 
       expect(find.text('Staff review route opened'), findsOneWidget);
@@ -550,7 +550,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Time slots'));
+      await tester.tap(find.text('Facility Time Slots'));
       await tester.pumpAndSettle();
 
       expect(find.text('Slot management route opened'), findsOneWidget);
@@ -573,7 +573,7 @@ void main() {
 
       await tester.drag(find.byType(ListView), const Offset(0, -500));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Facility management'));
+      await tester.tap(find.text('Facilities'));
       await tester.pumpAndSettle();
 
       expect(find.text('Facility management route opened'), findsOneWidget);
@@ -833,7 +833,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Booking slots'), findsOneWidget);
+      expect(find.text('Booking Availability'), findsOneWidget);
       expect(find.text('Monday'), findsOneWidget);
       expect(find.text('Weekly - 09:00 - 10:00 - active'), findsOneWidget);
     });

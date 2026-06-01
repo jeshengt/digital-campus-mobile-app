@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-import '../../../core/constants/app_colors.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_dimensions.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../shared/layouts/utm_background_scaffold.dart';
+import '../../../shared/widgets/utm_top_app_bar.dart';
 import '../models/bus_location.dart';
 import '../models/campus_bus.dart';
 import '../services/bus_tracking_service.dart';
@@ -56,8 +58,8 @@ class _DriverBusBroadcastScreenState extends State<DriverBusBroadcastScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Driver broadcast')),
+    return UtmBackgroundScaffold(
+      appBar: const UtmTopAppBar(title: 'Driver broadcast'),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -138,13 +140,9 @@ class _DriverBusBroadcastScreenState extends State<DriverBusBroadcastScreen> {
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           const SizedBox(height: AppDimensions.spacingMedium),
-                          _DriverRouteMap(
+                          _DriverMapSection(
                             bus: selectedBus,
                             broadcastLocation: location,
-                            currentPosition: _currentPosition,
-                          ),
-                          const SizedBox(height: AppDimensions.spacingMedium),
-                          _CurrentLocationCard(
                             currentPosition: _currentPosition,
                             onLocate: _isUpdating
                                 ? null
@@ -165,7 +163,7 @@ class _DriverBusBroadcastScreenState extends State<DriverBusBroadcastScreen> {
                           ),
                           const SizedBox(height: AppDimensions.spacingMedium),
                           Text(
-                            'Broadcast updates are sent every 10 seconds while live.',
+                            'Broadcast are updated every 10 seconds while live.',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
@@ -288,8 +286,10 @@ class _BroadcastHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Card(
-      color: isLive ? AppColors.utmMaroon : AppColors.surface,
+      color: isLive ? colors.brandMaroonSoft : colors.surface,
       child: Padding(
         padding: const EdgeInsets.all(AppDimensions.spacingLarge),
         child: Row(
@@ -299,13 +299,13 @@ class _BroadcastHero extends StatelessWidget {
               height: 54,
               decoration: BoxDecoration(
                 color: isLive
-                    ? Colors.white.withValues(alpha: 0.12)
-                    : AppColors.utmMaroonTint,
+                    ? colors.brandMaroon.withValues(alpha: 0.16)
+                    : colors.brandMaroonSoft,
                 borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
               ),
               child: Icon(
                 isLive ? Icons.radio_button_checked : Icons.radio_button_off,
-                color: isLive ? AppColors.utmGoldTint : AppColors.utmMaroon,
+                color: isLive ? colors.brandMaroon : colors.brandMaroon,
               ),
             ),
             const SizedBox(width: AppDimensions.spacingMedium),
@@ -316,8 +316,8 @@ class _BroadcastHero extends StatelessWidget {
                   Text(
                     isLive ? 'Broadcasting live' : 'Broadcast paused',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: isLive ? Colors.white : AppColors.textPrimary,
-                      fontWeight: FontWeight.w900,
+                      color: colors.textPrimary,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: AppDimensions.spacingTiny),
@@ -326,9 +326,7 @@ class _BroadcastHero extends StatelessWidget {
                         ? 'No recent location update'
                         : 'Last update ${formatUpdatedAt(location!.updatedAt)}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: isLive
-                          ? AppColors.utmGoldTint
-                          : AppColors.textSecondary,
+                      color: colors.textSecondary,
                     ),
                   ),
                 ],
@@ -381,17 +379,55 @@ class _AssignedBusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.all(AppDimensions.spacingMedium),
-        leading: const CircleAvatar(
-          backgroundColor: AppColors.utmGoldTint,
-          foregroundColor: AppColors.warning,
-          child: Icon(Icons.route_rounded),
+        leading: CircleAvatar(
+          backgroundColor: colors.brandGoldSoft,
+          foregroundColor: colors.warning,
+          child: const Icon(Icons.route_rounded),
         ),
         title: Text(bus.routeName),
         subtitle: Text(bus.status),
       ),
+    );
+  }
+}
+
+class _DriverMapSection extends StatelessWidget {
+  const _DriverMapSection({
+    required this.bus,
+    required this.broadcastLocation,
+    required this.currentPosition,
+    required this.onLocate,
+  });
+
+  final CampusBus bus;
+  final BusLocation? broadcastLocation;
+  final BusPosition? currentPosition;
+  final VoidCallback? onLocate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        _DriverRouteMap(
+          bus: bus,
+          broadcastLocation: broadcastLocation,
+          currentPosition: currentPosition,
+        ),
+        Positioned(
+          left: currentPosition == null ? AppDimensions.spacingSmall : null,
+          right: AppDimensions.spacingSmall,
+          bottom: AppDimensions.spacingSmall,
+          child: _CurrentLocationCard(
+            currentPosition: currentPosition,
+            onLocate: onLocate,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -409,6 +445,7 @@ class _DriverRouteMap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
     final routePoints = [
       for (final point in bus.routePoints)
         LatLng(point.latitude, point.longitude),
@@ -444,7 +481,7 @@ class _DriverRouteMap extends StatelessWidget {
                   polylines: [
                     Polyline(
                       points: routePoints,
-                      color: AppColors.utmMaroon,
+                      color: colors.brandMaroon,
                       strokeWidth: 4,
                     ),
                   ],
@@ -459,11 +496,11 @@ class _DriverRouteMap extends StatelessWidget {
                       ),
                       width: 48,
                       height: 48,
-                      child: const _DriverMapMarker(
+                      child: _DriverMapMarker(
                         icon: Icons.directions_bus_filled_rounded,
                         tooltip: 'Latest broadcast location',
-                        backgroundColor: AppColors.utmMaroon,
-                        foregroundColor: Colors.white,
+                        backgroundColor: colors.brandMaroon,
+                        foregroundColor: colors.onBrand,
                       ),
                     ),
                   if (currentPosition != null)
@@ -474,11 +511,11 @@ class _DriverRouteMap extends StatelessWidget {
                       ),
                       width: 42,
                       height: 42,
-                      child: const _DriverMapMarker(
+                      child: _DriverMapMarker(
                         icon: Icons.my_location_rounded,
                         tooltip: 'Current GPS location',
-                        backgroundColor: AppColors.utmGoldTint,
-                        foregroundColor: AppColors.warning,
+                        backgroundColor: colors.brandGoldSoft,
+                        foregroundColor: colors.warning,
                       ),
                     ),
                   if (broadcastLocation == null && currentPosition == null)
@@ -486,11 +523,11 @@ class _DriverRouteMap extends StatelessWidget {
                       point: center,
                       width: 42,
                       height: 42,
-                      child: const _DriverMapMarker(
+                      child: _DriverMapMarker(
                         icon: Icons.route_rounded,
                         tooltip: 'Route preview',
-                        backgroundColor: AppColors.surface,
-                        foregroundColor: AppColors.utmMaroon,
+                        backgroundColor: colors.glassStrong,
+                        foregroundColor: colors.brandMaroon,
                       ),
                     ),
                 ],
@@ -539,16 +576,18 @@ class _DriverMapMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Tooltip(
       message: tooltip,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white, width: 2),
-          boxShadow: const [
+          border: Border.all(color: colors.glassBorder, width: 2),
+          boxShadow: [
             BoxShadow(
-              color: AppColors.shadow,
+              color: colors.shadow,
               blurRadius: 16,
               offset: Offset(0, 8),
             ),
@@ -571,54 +610,146 @@ class _CurrentLocationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+    final textTheme = Theme.of(context).textTheme;
     final hasPosition = currentPosition != null;
+    final radius = BorderRadius.circular(
+      hasPosition ? AppDimensions.radiusLarge : AppDimensions.radiusExtraLarge,
+    );
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacingMedium),
-        child: Row(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: AppColors.utmMaroonTint,
-                borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-              ),
-              child: const Icon(
-                Icons.my_location_rounded,
-                color: AppColors.utmMaroon,
-              ),
-            ),
-            const SizedBox(width: AppDimensions.spacingMedium),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    hasPosition
-                        ? 'Current location ready'
-                        : 'Current location not loaded',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: AppDimensions.spacingTiny),
-                  Text(
-                    hasPosition
-                        ? '${currentPosition!.latitude.toStringAsFixed(5)}, ${currentPosition!.longitude.toStringAsFixed(5)}'
-                        : 'Tap locate to preview your GPS position on the map.',
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppDimensions.spacingMedium),
-            OutlinedButton.icon(
+    final locateButton = hasPosition
+        ? Semantics(
+            label: 'Locate',
+            button: true,
+            child: IconButton.filled(
               key: const Key('driverLocateButton'),
+              tooltip: 'Locate',
               onPressed: onLocate,
+              style: IconButton.styleFrom(
+                backgroundColor: colors.brandMaroon,
+                foregroundColor: colors.onBrand,
+                disabledBackgroundColor: colors.mutedSurface,
+                disabledForegroundColor: colors.textTertiary,
+                fixedSize: const Size.square(44),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    AppDimensions.radiusMedium,
+                  ),
+                ),
+              ),
               icon: const Icon(Icons.my_location_rounded),
-              label: const Text('Locate'),
             ),
-          ],
+          )
+        : FilledButton.icon(
+            key: const Key('driverLocateButton'),
+            onPressed: onLocate,
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(104, 48),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppDimensions.spacingMedium,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
+              ),
+              textStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0,
+              ),
+            ),
+            icon: const Icon(Icons.my_location_rounded),
+            label: const Text('Locate'),
+          );
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        boxShadow: [
+          BoxShadow(
+            color: hasPosition
+                ? colors.brandMaroon.withValues(alpha: 0.12)
+                : colors.shadow,
+            blurRadius: hasPosition ? 22 : 34,
+            offset: Offset(0, hasPosition ? 10 : 16),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                if (hasPosition) ...[
+                  colors.brandGoldSoft.withValues(alpha: 0.76),
+                  colors.glassStrong.withValues(alpha: 0.86),
+                ] else ...[
+                  colors.glassStrong.withValues(alpha: 0.9),
+                  colors.glass.withValues(alpha: 0.78),
+                ],
+              ],
+            ),
+          ),
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              hasPosition ? 14 : 13,
+              hasPosition ? 8 : 13,
+              hasPosition ? 8 : 13,
+              hasPosition ? 8 : 13,
+            ),
+            child: hasPosition
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Ready',
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          height: 1.08,
+                        ),
+                      ),
+                      const SizedBox(width: AppDimensions.spacingMedium),
+                      locateButton,
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Current location unavailable',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                height: 1.08,
+                              ),
+                            ),
+                            const SizedBox(height: AppDimensions.spacingTiny),
+                            Text(
+                              'Tap Locate to show your GPS position on the map.',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colors.textSecondary,
+                                height: 1.25,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: AppDimensions.spacingSmall),
+                      locateButton,
+                    ],
+                  ),
+          ),
         ),
       ),
     );
@@ -682,13 +813,15 @@ class _DriverMessageState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppDimensions.spacingLarge),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 42, color: AppColors.utmMaroon),
+            Icon(icon, size: 42, color: colors.brandMaroon),
             const SizedBox(height: AppDimensions.spacingMedium),
             Text(title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: AppDimensions.spacingSmall),

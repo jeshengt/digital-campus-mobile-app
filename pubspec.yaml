@@ -71,6 +71,7 @@ flutter:
 
   assets:
     - assets/images/utmgologonobg.png
+    - assets/images/utmlogoheader.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

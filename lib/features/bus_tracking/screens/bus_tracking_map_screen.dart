@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../app/theme/app_theme.dart';
+import '../../../shared/layouts/utm_background_scaffold.dart';
+import '../../../shared/widgets/utm_feature_header.dart';
+import '../../../shared/widgets/utm_top_app_bar.dart';
 import '../models/bus_location.dart';
 import '../models/campus_bus.dart';
 import '../services/bus_tracking_service.dart';
@@ -44,8 +47,8 @@ class _BusTrackingMapScreenState extends State<BusTrackingMapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+    return UtmBackgroundScaffold(
+      appBar: UtmTopAppBar(title: widget.title),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -271,50 +274,10 @@ class _MapHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppColors.utmMaroon,
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacingLarge),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-              ),
-              child: const Icon(
-                Icons.map_outlined,
-                color: AppColors.utmGoldTint,
-              ),
-            ),
-            const SizedBox(width: AppDimensions.spacingMedium),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Campus shuttle map',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimensions.spacingTiny),
-                  Text(
-                    '$liveCount live bus${liveCount == 1 ? '' : 'es'} now',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.utmGoldTint,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    return UtmFeatureHeader(
+      icon: Icons.map_outlined,
+      title: 'Campus shuttle map',
+      subtitle: '$liveCount live bus${liveCount == 1 ? '' : 'es'} now',
     );
   }
 }
@@ -376,10 +339,12 @@ class _BusMessageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 42, color: AppColors.utmMaroon),
+        Icon(icon, size: 42, color: colors.brandMaroon),
         const SizedBox(height: AppDimensions.spacingMedium),
         Text(title, style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: AppDimensions.spacingSmall),

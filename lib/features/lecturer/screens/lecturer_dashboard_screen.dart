@@ -11,35 +11,27 @@ class LecturerDashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return RoleDashboardLayout(
       title: 'Lecturer Dashboard',
-      subtitle: 'Attendance sessions, live lists, and local report exports.',
+      subtitle: 'Attendance sessions and live class lists.',
       cards: [
         UtmInfoCard(
           icon: Icons.qr_code_2_rounded,
-          title: 'Generate attendance QR',
-          statusLabel: 'Secure',
-          description: 'Create a time-bound QR with classroom geofence checks.',
+          title: 'Generate Attendance QR',
+          description:
+              'Create a QR code with a time limit and classroom location check.',
           onTap: () =>
               Navigator.pushNamed(context, AppRoutes.lecturerCreateAttendance),
         ),
         UtmInfoCard(
           icon: Icons.list_alt_rounded,
-          title: 'Attendance lists',
-          statusLabel: 'Live',
-          description: 'Review students who scanned and passed validation.',
+          title: 'Attendance Lists',
+          description: 'View students who scanned and passed validation.',
           onTap: () =>
               Navigator.pushNamed(context, AppRoutes.lecturerAttendanceList),
         ),
-        const UtmInfoCard(
-          icon: Icons.picture_as_pdf_outlined,
-          title: 'Local PDF export',
-          statusLabel: 'Local',
-          description: 'Reports will be generated on device, not by a backend.',
-        ),
         UtmInfoCard(
           icon: Icons.directions_bus_filled_outlined,
-          title: 'Live bus tracking',
-          statusLabel: 'OSM',
-          description: 'Check active campus buses between classes.',
+          title: 'Track Buses',
+          description: 'View live locations for campus buses.',
           onTap: () => Navigator.pushNamed(context, AppRoutes.busTrackingMap),
         ),
       ],

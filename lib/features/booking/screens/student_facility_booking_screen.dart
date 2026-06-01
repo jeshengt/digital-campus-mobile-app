@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
+import '../../../app/theme/app_theme.dart';
+import '../../../shared/layouts/utm_background_scaffold.dart';
+import '../../../shared/widgets/utm_feature_header.dart';
+import '../../../shared/widgets/utm_top_app_bar.dart';
 import '../models/facility.dart';
 import '../models/facility_booking.dart';
 import '../models/facility_slot_capacity.dart';
@@ -37,8 +40,8 @@ class _StudentFacilityBookingScreenState
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Facility booking')),
+    return UtmBackgroundScaffold(
+      appBar: const UtmTopAppBar(title: 'Facility booking'),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -322,6 +325,8 @@ class _SlotPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return StreamBuilder<List<FacilitySlotTemplate>>(
       stream: facilityBookingService.watchAvailableSlotTemplatesForFacility(
         facility.facilityId,
@@ -398,7 +403,7 @@ class _SlotPicker extends StatelessWidget {
 
                 return DecoratedBox(
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: colors.glassBorder),
                     borderRadius: BorderRadius.circular(
                       AppDimensions.radiusMedium,
                     ),
@@ -418,9 +423,9 @@ class _SlotPicker extends StatelessWidget {
                           leading:
                               selectedSlot?.slotOccurrenceId ==
                                   occurrences[index].slotOccurrenceId
-                              ? const Icon(
+                              ? Icon(
                                   Icons.check_circle_rounded,
-                                  color: AppColors.utmMaroon,
+                                  color: colors.brandMaroon,
                                 )
                               : const Icon(Icons.circle_outlined),
                           title: Text(
@@ -459,50 +464,11 @@ class _StudentBookingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppColors.utmMaroon,
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacingLarge),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-              ),
-              child: const Icon(
-                Icons.meeting_room_outlined,
-                color: AppColors.utmGoldTint,
-              ),
-            ),
-            const SizedBox(width: AppDimensions.spacingMedium),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Campus facilities',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimensions.spacingTiny),
-                  Text(
-                    '$facilityCount available - $bookingCount request${bookingCount == 1 ? '' : 's'}',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.utmGoldTint,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    return UtmFeatureHeader(
+      icon: Icons.meeting_room_outlined,
+      title: 'Campus facilities',
+      subtitle:
+          '$facilityCount available - $bookingCount request${bookingCount == 1 ? '' : 's'}',
     );
   }
 }
@@ -515,13 +481,15 @@ class _FacilityTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.all(AppDimensions.spacingMedium),
-        leading: const CircleAvatar(
-          backgroundColor: AppColors.utmMaroonTint,
-          foregroundColor: AppColors.utmMaroon,
-          child: Icon(Icons.meeting_room_outlined),
+        leading: CircleAvatar(
+          backgroundColor: colors.brandMaroonSoft,
+          foregroundColor: colors.brandMaroon,
+          child: const Icon(Icons.meeting_room_outlined),
         ),
         title: Text(facility.name),
         subtitle: Text(
@@ -593,10 +561,11 @@ class _BookingStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
     final color = switch (status) {
-      bookingStatusApproved => AppColors.success,
-      bookingStatusCancelled => AppColors.textTertiary,
-      _ => AppColors.warning,
+      bookingStatusApproved => colors.success,
+      bookingStatusCancelled => colors.textTertiary,
+      _ => colors.warning,
     };
 
     return Container(
@@ -683,10 +652,12 @@ class _BookingMessageContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 42, color: AppColors.utmMaroon),
+        Icon(icon, size: 42, color: colors.brandMaroon),
         const SizedBox(height: AppDimensions.spacingMedium),
         Text(title, style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: AppDimensions.spacingSmall),

@@ -3,9 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../../app/routes/app_routes.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_dimensions.dart';
+import '../../../shared/layouts/utm_background_scaffold.dart';
+import '../../../shared/widgets/utm_feature_header.dart';
 import '../../../shared/widgets/utm_primary_button.dart';
+import '../../../shared/widgets/utm_top_app_bar.dart';
 import '../models/attendance_session.dart';
 import '../services/attendance_service.dart';
 import '../services/attendance_qr_export_service.dart';
@@ -46,9 +50,8 @@ class _LecturerSessionQrScreenState extends State<LecturerSessionQrScreen> {
     final session =
         ModalRoute.of(context)?.settings.arguments as AttendanceSession?;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Attendance QR')),
+    return UtmBackgroundScaffold(
+      appBar: const UtmTopAppBar(title: 'Attendance QR'),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -224,40 +227,12 @@ class _SessionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.utmMaroon,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacingMedium),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _StatusChip(isActive: session.isActive),
-            const SizedBox(height: AppDimensions.spacingMedium),
-            Text(
-              session.courseCode,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: AppDimensions.spacingTiny),
-            Text(
-              _headlineDetail,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.white.withValues(alpha: 0.82),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      ),
+    return UtmFeatureHeader(
+      icon: session.isActive
+          ? Icons.qr_code_2_rounded
+          : Icons.lock_clock_rounded,
+      title: session.courseCode,
+      subtitle: _headlineDetail,
     );
   }
 
@@ -279,6 +254,8 @@ class _QrDisplayCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
@@ -294,10 +271,10 @@ class _QrDisplayCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(
                     AppDimensions.radiusLarge,
                   ),
-                  border: Border.all(color: AppColors.border),
-                  boxShadow: const [
+                  border: Border.all(color: colors.glassBorder),
+                  boxShadow: [
                     BoxShadow(
-                      color: AppColors.shadow,
+                      color: colors.shadow,
                       blurRadius: 22,
                       offset: Offset(0, 10),
                     ),
@@ -413,45 +390,6 @@ class _EndSessionButton extends StatelessWidget {
   }
 }
 
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.isActive});
-
-  final bool isActive;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.spacingMedium,
-        vertical: AppDimensions.spacingSmall,
-      ),
-      decoration: BoxDecoration(
-        color: isActive
-            ? AppColors.utmGoldTint
-            : Colors.white.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isActive ? Icons.check_circle_rounded : Icons.lock_clock_rounded,
-            size: 16,
-            color: isActive ? AppColors.warning : Colors.white,
-          ),
-          const SizedBox(width: AppDimensions.spacingSmall),
-          Text(
-            isActive ? 'Active QR session' : 'Closed QR session',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: isActive ? AppColors.warning : Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SessionFacts extends StatelessWidget {
   const _SessionFacts({required this.session});
 
@@ -495,17 +433,19 @@ class _FactPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Container(
       width: 224,
       padding: const EdgeInsets.all(AppDimensions.spacingMedium),
       decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
+        color: colors.mutedSurface,
         borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: AppColors.utmMaroon, size: 20),
+          Icon(icon, color: colors.brandMaroon, size: 20),
           const SizedBox(width: AppDimensions.spacingSmall),
           Expanded(
             child: Column(
@@ -514,7 +454,7 @@ class _FactPill extends StatelessWidget {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: colors.textSecondary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -524,7 +464,7 @@ class _FactPill extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.textPrimary,
+                    color: colors.textPrimary,
                     fontWeight: FontWeight.w800,
                   ),
                 ),

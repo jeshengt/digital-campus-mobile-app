@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/routes/app_routes.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_dimensions.dart';
+import '../../../shared/layouts/utm_background_scaffold.dart';
+import '../../../shared/widgets/utm_glass_panel.dart';
 import '../../../shared/widgets/utm_primary_button.dart';
 import '../../../shared/widgets/utm_text_field.dart';
+import '../../../shared/widgets/utm_top_app_bar.dart';
 import '../../auth/services/auth_service.dart';
 import '../models/app_user.dart';
 import '../services/user_profile_service.dart';
@@ -206,15 +209,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = _authService.currentUser;
 
     if (user == null) {
-      return Scaffold(
-        appBar: _buildProfileAppBar(context),
+      return UtmBackgroundScaffold(
+        appBar: _buildProfileAppBar(),
         body: const Center(child: Text('Please sign in to view your profile.')),
       );
     }
 
-    return Scaffold(
-      appBar: _buildProfileAppBar(context),
-      backgroundColor: AppColors.background,
+    return UtmBackgroundScaffold(
+      appBar: _buildProfileAppBar(),
       body: StreamBuilder<AppUser?>(
         stream: _profileService.watchProfile(user.uid),
         builder: (context, snapshot) {
@@ -242,9 +244,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(
-                    AppDimensions.spacingSmall,
                     AppDimensions.spacingLarge,
-                    AppDimensions.spacingSmall,
+                    AppDimensions.spacingMedium,
+                    AppDimensions.spacingLarge,
                     AppDimensions.spacingLarge,
                   ),
                   children: [
@@ -262,15 +264,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  PreferredSizeWidget _buildProfileAppBar(BuildContext context) {
-    return AppBar(
-      leading: IconButton(
-        tooltip: 'Back',
-        onPressed: () => Navigator.maybePop(context),
-        icon: const Icon(Icons.arrow_back_ios_new_rounded),
-      ),
-      title: const Text('Profile'),
-    );
+  PreferredSizeWidget _buildProfileAppBar() {
+    return const UtmTopAppBar(title: 'Profile');
   }
 
   void _syncControllers(AppUser profile, {bool force = false}) {
@@ -300,55 +295,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimensions.spacingMedium),
-      child: Text(
-        message,
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: color),
+      child: UtmGlassPanel(
+        backgroundColor: color.withValues(alpha: isError ? 0.08 : 0.1),
+        borderRadius: AppDimensions.radiusLarge,
+        showShadow: false,
+        child: Padding(
+          padding: const EdgeInsets.all(AppDimensions.spacingMedium),
+          child: Row(
+            children: [
+              Icon(
+                isError
+                    ? Icons.error_outline_rounded
+                    : Icons.check_circle_outline_rounded,
+                color: color,
+              ),
+              const SizedBox(width: AppDimensions.spacingSmall),
+              Expanded(
+                child: Text(
+                  message,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: color),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildActionsCard(AppUser profile) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.spacingSmall,
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppDimensions.radiusLarge),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 18,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              ProfileActionTile(
-                icon: Icons.person_outline_rounded,
-                label: 'Edit Profile',
-                onTap: () => _showEditProfileSheet(profile),
-              ),
-              const Divider(height: 1, indent: 64),
-              ProfileActionTile(
-                icon: Icons.lock_outline_rounded,
-                label: 'Change Password',
-                onTap: _showPasswordChangeSheet,
-              ),
-              const Divider(height: 1, indent: 64),
-              ProfileActionTile(
-                icon: Icons.logout_rounded,
-                label: 'Logout',
-                isDestructive: true,
-                isLoading: _isLoggingOut,
-                onTap: _isLoggingOut ? null : _logout,
-              ),
-            ],
-          ),
+    final colors = UtmThemeColors.of(context);
+
+    return UtmGlassPanel(
+      backgroundColor: colors.glassStrong.withValues(alpha: 0.82),
+      borderRadius: AppDimensions.radiusExtraLarge,
+      child: Padding(
+        padding: const EdgeInsets.all(AppDimensions.spacingSmall),
+        child: Column(
+          children: [
+            ProfileActionTile(
+              icon: Icons.person_outline_rounded,
+              label: 'Edit Profile',
+              subtitle: 'Update your name and campus ID.',
+              onTap: () => _showEditProfileSheet(profile),
+            ),
+            const SizedBox(height: AppDimensions.spacingTiny),
+            ProfileActionTile(
+              icon: Icons.lock_outline_rounded,
+              label: 'Change Password',
+              subtitle: 'Keep your account secure.',
+              onTap: _showPasswordChangeSheet,
+            ),
+            const SizedBox(height: AppDimensions.spacingTiny),
+            ProfileActionTile(
+              icon: Icons.logout_rounded,
+              label: 'Logout',
+              subtitle: 'Sign out from this device.',
+              isDestructive: true,
+              isLoading: _isLoggingOut,
+              onTap: _isLoggingOut ? null : _logout,
+            ),
+          ],
         ),
       ),
     );

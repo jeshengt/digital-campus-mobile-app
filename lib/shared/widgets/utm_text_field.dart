@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../app/theme/app_theme.dart';
+
 class UtmTextField extends StatelessWidget {
   const UtmTextField({
     super.key,
@@ -26,8 +28,11 @@ class UtmTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return TextFormField(
       controller: controller,
+      style: TextStyle(color: colors.textPrimary),
       keyboardType: keyboardType,
       obscureText: obscureText,
       textInputAction: textInputAction,

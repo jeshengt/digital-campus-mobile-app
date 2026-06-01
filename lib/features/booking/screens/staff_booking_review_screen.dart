@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_colors.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_dimensions.dart';
+import '../../../shared/layouts/utm_background_scaffold.dart';
+import '../../../shared/widgets/utm_feature_header.dart';
+import '../../../shared/widgets/utm_top_app_bar.dart';
 import '../models/facility_booking.dart';
 import '../services/facility_booking_service.dart';
 import '../utils/booking_validation.dart';
@@ -31,8 +34,8 @@ class _StaffBookingReviewScreenState extends State<StaffBookingReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Booking requests')),
+    return UtmBackgroundScaffold(
+      appBar: const UtmTopAppBar(title: 'Booking requests'),
       body: SafeArea(
         child: Align(
           alignment: Alignment.topCenter,
@@ -141,50 +144,10 @@ class _StaffBookingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppColors.utmMaroon,
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacingLarge),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppDimensions.radiusMedium),
-              ),
-              child: const Icon(
-                Icons.fact_check_outlined,
-                color: AppColors.utmGoldTint,
-              ),
-            ),
-            const SizedBox(width: AppDimensions.spacingMedium),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Facility requests',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: AppDimensions.spacingTiny),
-                  Text(
-                    '$pendingCount pending - $totalCount total',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.utmGoldTint,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    return UtmFeatureHeader(
+      icon: Icons.fact_check_outlined,
+      title: 'Facility Bookings',
+      subtitle: '$pendingCount Pending - $totalCount Total',
     );
   }
 }
@@ -250,7 +213,7 @@ class _StaffBookingTile extends StatelessWidget {
                       key: Key('cancelStaffBooking_${booking.bookingId}'),
                       onPressed: onCancel,
                       icon: const Icon(Icons.cancel_outlined),
-                      label: const Text('Cancel'),
+                      label: const Text('Decline'),
                     ),
                 ],
               ),
@@ -269,10 +232,11 @@ class _StaffBookingStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
     final color = switch (status) {
-      bookingStatusApproved => AppColors.success,
-      bookingStatusCancelled => AppColors.textTertiary,
-      _ => AppColors.warning,
+      bookingStatusApproved => colors.success,
+      bookingStatusCancelled => colors.textTertiary,
+      _ => colors.warning,
     };
 
     return Container(
@@ -307,13 +271,15 @@ class _StaffBookingMessageState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppDimensions.spacingLarge),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 42, color: AppColors.utmMaroon),
+            Icon(icon, size: 42, color: colors.brandMaroon),
             const SizedBox(height: AppDimensions.spacingMedium),
             Text(title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: AppDimensions.spacingSmall),

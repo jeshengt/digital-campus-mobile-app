@@ -15,18 +15,15 @@ class StaffDashboardScreen extends StatelessWidget {
       cards: [
         UtmInfoCard(
           icon: Icons.fact_check_outlined,
-          title: 'Booking requests',
-          statusLabel: 'Review',
-          description:
-              'Staff review, approve, or cancel assigned bookings here.',
+          title: 'Booking Requests',
+          description: 'Review, approve or cancel assigned bookings.',
           onTap: () =>
               Navigator.pushNamed(context, AppRoutes.staffBookingReview),
         ),
         UtmInfoCard(
           icon: Icons.meeting_room_outlined,
-          title: 'Time slots',
-          statusLabel: 'Weekly',
-          description: 'Create weekly facility time slots for students.',
+          title: 'Facility Time Slots',
+          description: 'Update available time slots for facility use.',
           onTap: () =>
               Navigator.pushNamed(context, AppRoutes.staffSlotManagement),
         ),

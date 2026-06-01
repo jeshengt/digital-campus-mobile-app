@@ -309,10 +309,29 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Generate attendance QR'));
+      await tester.tap(find.text('Generate Attendance QR'));
       await tester.pumpAndSettle();
 
       expect(find.text('Create route opened'), findsOneWidget);
+    });
+
+    testWidgets('lecturer dashboard hides unused local PDF export card', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          routes: {
+            AppRoutes.lecturerDashboard: (_) => const LecturerDashboardScreen(),
+          },
+          initialRoute: AppRoutes.lecturerDashboard,
+        ),
+      );
+
+      expect(find.text('Generate Attendance QR'), findsOneWidget);
+      expect(find.text('Attendance Lists'), findsOneWidget);
+      expect(find.text('Track Buses'), findsOneWidget);
+      expect(find.text('Local PDF export'), findsNothing);
     });
 
     testWidgets('student dashboard opens attendance history route', (
@@ -330,7 +349,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Attendance history'));
+      await tester.tap(find.text('Attendance History'));
       await tester.pumpAndSettle();
 
       expect(find.text('History route opened'), findsOneWidget);

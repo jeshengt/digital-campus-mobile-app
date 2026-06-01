@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../app/routes/app_routes.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../app/theme/app_theme.dart';
 import '../../../core/constants/app_dimensions.dart';
+import '../../../shared/layouts/utm_background_scaffold.dart';
+import '../../../shared/widgets/utm_feature_header.dart';
 import '../../../shared/widgets/utm_primary_button.dart';
+import '../../../shared/widgets/utm_top_app_bar.dart';
 import '../models/attendance_record.dart';
 import '../models/attendance_session.dart';
 import '../services/attendance_pdf_export_service.dart';
@@ -43,11 +46,9 @@ class _LecturerAttendanceListScreenState
     final session =
         ModalRoute.of(context)?.settings.arguments as AttendanceSession?;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          session == null ? 'Attendance sessions' : 'Attendance list',
-        ),
+    return UtmBackgroundScaffold(
+      appBar: UtmTopAppBar(
+        title: session == null ? 'Attendance list' : 'Attendance list',
         actions: [
           if (session != null && session.isActive)
             Semantics(
@@ -200,6 +201,7 @@ class _SessionList extends StatelessWidget {
           separatorBuilder: (_, _) =>
               const SizedBox(height: AppDimensions.spacingMedium),
           itemBuilder: (context, index) {
+            final colors = UtmThemeColors.of(context);
             final session = sessions[index];
             return Card(
               child: ListTile(
@@ -208,11 +210,11 @@ class _SessionList extends StatelessWidget {
                 ),
                 leading: CircleAvatar(
                   backgroundColor: session.isActive
-                      ? AppColors.utmGoldTint
-                      : AppColors.surfaceMuted,
+                      ? colors.brandGoldSoft
+                      : colors.mutedSurface,
                   foregroundColor: session.isActive
-                      ? AppColors.warning
-                      : AppColors.textSecondary,
+                      ? colors.warning
+                      : colors.textSecondary,
                   child: const Icon(Icons.qr_code_2_rounded),
                 ),
                 title: Text(session.courseCode),
@@ -484,37 +486,10 @@ class _RecordSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: AppColors.utmMaroon,
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacingLarge),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              session.courseCode,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: AppDimensions.spacingSmall),
-            Text(
-              session.requiresLocation ? 'Location required' : 'QR only',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Colors.white.withValues(alpha: 0.85),
-              ),
-            ),
-            const SizedBox(height: AppDimensions.spacingSmall),
-            Text(
-              '$count present',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(color: AppColors.utmGoldTint),
-            ),
-          ],
-        ),
-      ),
+    return UtmFeatureHeader(
+      icon: Icons.people_outline_rounded,
+      title: session.courseCode,
+      subtitle: '$count present',
     );
   }
 }
@@ -526,15 +501,17 @@ class _RecordTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: AppDimensions.spacingMedium),
       child: Card(
         child: ListTile(
           contentPadding: const EdgeInsets.all(AppDimensions.spacingMedium),
-          leading: const CircleAvatar(
-            backgroundColor: AppColors.utmGoldTint,
-            foregroundColor: AppColors.warning,
-            child: Icon(Icons.check_rounded),
+          leading: CircleAvatar(
+            backgroundColor: colors.brandGoldSoft,
+            foregroundColor: colors.warning,
+            child: const Icon(Icons.check_rounded),
           ),
           title: Text(record.studentName),
           subtitle: Text(_recordSubtitle(record)),
@@ -578,13 +555,15 @@ class _MessageState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = UtmThemeColors.of(context);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppDimensions.spacingLarge),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 42, color: AppColors.utmMaroon),
+            Icon(icon, size: 42, color: colors.brandMaroon),
             const SizedBox(height: AppDimensions.spacingMedium),
             Text(title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: AppDimensions.spacingSmall),

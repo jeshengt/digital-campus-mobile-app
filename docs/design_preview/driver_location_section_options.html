@@ -1,0 +1,1066 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-option="panel">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UTM Go Driver Locate Section Options</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --utm-maroon: #800000;
+      --utm-maroon-deep: #5f0808;
+      --utm-maroon-soft: rgba(128, 0, 0, 0.12);
+      --utm-gold: #c8a34a;
+      --utm-gold-soft: rgba(200, 163, 74, 0.18);
+      --bg: #f4f4f6;
+      --bg-2: #fff7f0;
+      --text: #1d1d1f;
+      --text-soft: #626873;
+      --text-muted: #858b96;
+      --glass: rgba(255, 255, 255, 0.62);
+      --glass-strong: rgba(255, 255, 255, 0.84);
+      --line: rgba(58, 58, 62, 0.1);
+      --shadow: 0 24px 60px rgba(53, 29, 29, 0.14);
+      --map-bg: #e8e4dc;
+      --route: rgba(128, 0, 0, 0.54);
+      --pin: #800000;
+      --on-brand: #ffffff;
+      --chip: rgba(128, 0, 0, 0.08);
+      --success: #7a5d00;
+    }
+
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --utm-maroon: #ff9696;
+      --utm-maroon-deep: #ffb0b0;
+      --utm-maroon-soft: rgba(255, 150, 150, 0.13);
+      --utm-gold: #e3c366;
+      --utm-gold-soft: rgba(227, 195, 102, 0.13);
+      --bg: #07080b;
+      --bg-2: #201216;
+      --text: #f5f5f7;
+      --text-soft: #c7cbd3;
+      --text-muted: #9198a6;
+      --glass: rgba(28, 30, 38, 0.68);
+      --glass-strong: rgba(34, 36, 45, 0.82);
+      --line: rgba(255, 255, 255, 0.09);
+      --shadow: 0 28px 64px rgba(0, 0, 0, 0.34);
+      --map-bg: #171a1f;
+      --route: rgba(255, 150, 150, 0.6);
+      --pin: #ff9696;
+      --on-brand: #2a080a;
+      --chip: rgba(255, 150, 150, 0.12);
+      --success: #e3c366;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 12% 7%, rgba(128, 0, 0, 0.16), transparent 32rem),
+        radial-gradient(circle at 88% 12%, rgba(200, 163, 74, 0.18), transparent 30rem),
+        radial-gradient(circle at 60% 94%, rgba(128, 0, 0, 0.08), transparent 34rem),
+        linear-gradient(135deg, var(--bg), var(--bg-2) 48%, var(--bg));
+    }
+
+    html[data-theme="dark"] body {
+      background:
+        radial-gradient(circle at 12% 7%, rgba(255, 150, 150, 0.16), transparent 31rem),
+        radial-gradient(circle at 88% 12%, rgba(227, 195, 102, 0.11), transparent 29rem),
+        radial-gradient(circle at 60% 94%, rgba(255, 150, 150, 0.11), transparent 34rem),
+        linear-gradient(135deg, var(--bg), var(--bg-2) 50%, var(--bg));
+    }
+
+    button {
+      border: 0;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    button:focus-visible {
+      outline: 3px solid rgba(128, 0, 0, 0.34);
+      outline-offset: 4px;
+    }
+
+    html[data-theme="dark"] button:focus-visible {
+      outline-color: rgba(255, 150, 150, 0.48);
+    }
+
+    .page {
+      width: min(100%, 1120px);
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .toolbar {
+      display: grid;
+      gap: 14px;
+      max-width: 980px;
+      margin: 0 auto 22px;
+      padding: 16px;
+      border-radius: 28px;
+      background: var(--glass);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+    }
+
+    .toolbar-top {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      min-width: 0;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .brand img {
+      width: 92px;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .brand-copy {
+      min-width: 0;
+    }
+
+    .eyebrow {
+      margin: 0 0 4px;
+      color: var(--utm-maroon-deep);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(22px, 4vw, 34px);
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .brand p {
+      max-width: 62ch;
+      margin: 8px 0 0;
+      color: var(--text-soft);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .theme-toggle {
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 999px;
+      color: var(--utm-maroon-deep);
+      background: var(--chip);
+      font-weight: 900;
+    }
+
+    .chooser {
+      display: grid;
+      gap: 10px;
+    }
+
+    .chooser-title {
+      margin: 0;
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .segmented button {
+      display: grid;
+      min-height: 86px;
+      align-content: start;
+      gap: 7px;
+      padding: 14px;
+      border-radius: 20px;
+      color: var(--text-soft);
+      background: rgba(124, 124, 128, 0.1);
+      text-align: left;
+      transition: background 180ms ease, box-shadow 180ms ease, color 180ms ease, transform 180ms ease;
+    }
+
+    .segmented button strong {
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+
+    .segmented button span {
+      font-size: 12px;
+      font-weight: 750;
+      line-height: 1.25;
+    }
+
+    .segmented button[aria-pressed="true"] {
+      color: var(--text);
+      background:
+        linear-gradient(135deg, rgba(128, 0, 0, 0.14), rgba(200, 163, 74, 0.12), var(--glass-strong));
+      box-shadow: 0 14px 28px rgba(48, 28, 28, 0.12);
+      transform: translateY(-1px);
+    }
+
+    html[data-theme="dark"] .segmented button[aria-pressed="true"] {
+      background:
+        linear-gradient(135deg, rgba(255, 150, 150, 0.13), rgba(227, 195, 102, 0.09), var(--glass-strong));
+    }
+
+    .canvas {
+      display: grid;
+      grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+      gap: 28px;
+      align-items: start;
+    }
+
+    .phone {
+      overflow: hidden;
+      min-height: 780px;
+      border-radius: 36px;
+      background:
+        radial-gradient(circle at 20% 8%, rgba(128, 0, 0, 0.12), transparent 18rem),
+        radial-gradient(circle at 82% 16%, rgba(200, 163, 74, 0.15), transparent 18rem),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.62), rgba(255, 255, 255, 0.22));
+      box-shadow: var(--shadow);
+    }
+
+    html[data-theme="dark"] .phone {
+      background:
+        radial-gradient(circle at 20% 8%, rgba(255, 150, 150, 0.12), transparent 18rem),
+        radial-gradient(circle at 82% 16%, rgba(227, 195, 102, 0.1), transparent 18rem),
+        linear-gradient(145deg, rgba(27, 29, 36, 0.7), rgba(19, 18, 23, 0.42));
+    }
+
+    .screen {
+      display: grid;
+      gap: 18px;
+      padding: 28px 20px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 44px;
+    }
+
+    .back {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      place-items: center;
+      border-radius: 999px;
+      color: var(--text);
+      background: transparent;
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .topbar strong {
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .hero {
+      display: grid;
+      gap: 8px;
+      padding: 18px;
+      border-radius: 26px;
+      background:
+        linear-gradient(135deg, rgba(128, 0, 0, 0.14), rgba(200, 163, 74, 0.12) 54%, rgba(255, 255, 255, 0.18));
+    }
+
+    html[data-theme="dark"] .hero {
+      background:
+        linear-gradient(135deg, rgba(255, 150, 150, 0.12), rgba(227, 195, 102, 0.08) 54%, rgba(255, 255, 255, 0.04));
+    }
+
+    .hero span {
+      color: var(--utm-maroon-deep);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .hero h2 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1.02;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--text-soft);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .route-card,
+    .map-card,
+    .notes {
+      border-radius: 26px;
+      background: var(--glass);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .route-card {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 15px;
+    }
+
+    .route-icon,
+    .gps-icon {
+      display: grid;
+      width: 48px;
+      height: 48px;
+      flex: 0 0 auto;
+      place-items: center;
+      border-radius: 16px;
+      color: var(--utm-maroon-deep);
+      background: var(--chip);
+    }
+
+    .route-card strong,
+    .location-copy strong,
+    .panel-copy strong,
+    .console-title strong {
+      display: block;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+
+    .route-card span,
+    .location-copy span,
+    .panel-copy span,
+    .console-meta,
+    .notes p {
+      color: var(--text-soft);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .map-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 230px;
+      background: var(--map-bg);
+    }
+
+    .map-grid {
+      position: absolute;
+      inset: 0;
+      opacity: 0.52;
+      background-image:
+        linear-gradient(rgba(120, 120, 120, 0.12) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(120, 120, 120, 0.12) 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+
+    .route-line {
+      position: absolute;
+      inset: 34px 42px 48px 34px;
+      border: 5px solid var(--route);
+      border-right-color: transparent;
+      border-top-color: transparent;
+      border-radius: 46% 36% 42% 34%;
+      transform: rotate(-11deg);
+    }
+
+    .bus-pin,
+    .user-pin {
+      position: absolute;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+    }
+
+    .bus-pin {
+      top: 76px;
+      left: 86px;
+      width: 42px;
+      height: 42px;
+      color: var(--on-brand);
+      background: var(--utm-maroon);
+    }
+
+    .user-pin {
+      right: 82px;
+      bottom: 72px;
+      width: 46px;
+      height: 46px;
+      color: #2b2104;
+      background: var(--utm-gold);
+    }
+
+    .map-label {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      padding: 9px 11px;
+      border-radius: 14px;
+      background: var(--glass-strong);
+      color: var(--text-soft);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .locate-preview {
+      display: grid;
+      gap: 12px;
+    }
+
+    .state-title {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .option {
+      display: none;
+    }
+
+    html[data-option="compact"] .option.compact,
+    html[data-option="panel"] .option.panel,
+    html[data-option="console"] .option.console {
+      display: grid;
+      gap: 12px;
+    }
+
+    .location-section {
+      position: relative;
+      overflow: hidden;
+      border-radius: 26px;
+      background:
+        linear-gradient(135deg, rgba(128, 0, 0, 0.13), rgba(200, 163, 74, 0.12) 58%, rgba(255, 255, 255, 0.18));
+      box-shadow: 0 22px 46px rgba(71, 37, 37, 0.1);
+    }
+
+    html[data-theme="dark"] .location-section {
+      background:
+        linear-gradient(135deg, rgba(255, 150, 150, 0.13), rgba(227, 195, 102, 0.09) 58%, rgba(255, 255, 255, 0.04));
+    }
+
+    .compact-card {
+      display: flex;
+      gap: 13px;
+      align-items: center;
+      min-height: 96px;
+      padding: 14px;
+    }
+
+    .location-copy {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .status-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      min-height: 24px;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      color: var(--success);
+      background: var(--utm-gold-soft);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .pill.neutral {
+      color: var(--text-soft);
+      background: rgba(124, 124, 128, 0.11);
+    }
+
+    .locate-action {
+      display: inline-flex;
+      min-width: 92px;
+      min-height: 46px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 16px;
+      color: var(--on-brand);
+      background: var(--utm-maroon);
+      box-shadow: 0 14px 26px rgba(128, 0, 0, 0.2);
+      font-size: 14px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    html[data-theme="dark"] .locate-action {
+      color: #2a080a;
+      background: #ffb0b0;
+    }
+
+    .panel-wrap {
+      position: relative;
+      min-height: 250px;
+      border-radius: 26px;
+      background: var(--map-bg);
+    }
+
+    .panel-wrap .map-grid,
+    .panel-wrap .route-line {
+      border-radius: inherit;
+    }
+
+    .floating-panel {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 13px;
+      border-radius: 22px;
+      background: var(--glass-strong);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.12);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .floating-panel.ready-panel {
+      left: auto;
+      right: 12px;
+      width: auto;
+      min-width: 132px;
+      padding: 8px 8px 8px 14px;
+      border-radius: 18px;
+      background:
+        linear-gradient(135deg, var(--utm-gold-soft), var(--glass-strong));
+      box-shadow: 0 14px 28px rgba(128, 0, 0, 0.14);
+    }
+
+    .panel-copy {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .panel-locate {
+      display: inline-flex;
+      min-width: 104px;
+      min-height: 48px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 16px;
+      border-radius: 17px;
+      color: var(--on-brand);
+      background: var(--utm-maroon);
+      box-shadow: 0 14px 26px rgba(128, 0, 0, 0.22);
+      font-size: 14px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .ready-panel .panel-locate {
+      min-width: 48px;
+      width: 48px;
+      min-height: 44px;
+      height: 44px;
+      padding: 0;
+      border-radius: 14px;
+    }
+
+    .ready-panel .panel-copy {
+      flex: 0 0 auto;
+    }
+
+    html[data-theme="dark"] .panel-locate {
+      color: #2a080a;
+      background: #ffb0b0;
+    }
+
+    .console-card {
+      display: grid;
+      gap: 14px;
+      padding: 15px;
+    }
+
+    .console-head {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .console-title {
+      display: flex;
+      min-width: 0;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .coordinate-box {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .coordinate-cell {
+      min-height: 72px;
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.26);
+    }
+
+    html[data-theme="dark"] .coordinate-cell {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .coordinate-cell span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .coordinate-cell strong {
+      display: block;
+      margin-top: 7px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .console-card .locate-action {
+      width: 100%;
+    }
+
+    .notes {
+      display: grid;
+      gap: 12px;
+      padding: 18px;
+    }
+
+    .notes h2 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+    }
+
+    .notes p {
+      margin: 0;
+    }
+
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .spec {
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(124, 124, 128, 0.1);
+    }
+
+    .spec strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .spec span {
+      color: var(--text-soft);
+      font-size: 12px;
+      line-height: 1.3;
+    }
+
+    svg {
+      display: block;
+      width: 21px;
+      height: 21px;
+      stroke: currentColor;
+      stroke-width: 2.4;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+    }
+
+    @media (max-width: 880px) {
+      .canvas {
+        grid-template-columns: 1fr;
+      }
+
+      .phone {
+        width: min(100%, 440px);
+        margin: 0 auto;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .page {
+        padding: 16px;
+      }
+
+      .toolbar {
+        border-radius: 24px;
+      }
+
+      .brand {
+        align-items: flex-start;
+      }
+
+      .brand img {
+        width: 76px;
+      }
+
+      .segmented {
+        grid-template-columns: 1fr;
+      }
+
+      .phone {
+        min-height: 0;
+        border-radius: 30px;
+      }
+
+      .screen {
+        padding: 22px 16px;
+      }
+
+      .compact-card,
+      .floating-panel,
+      .console-head {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .compact-card .locate-action {
+        width: 100%;
+      }
+
+      .floating-panel {
+        display: grid;
+      }
+
+      .floating-panel.ready-panel {
+        left: auto;
+        width: auto;
+      }
+
+      .panel-locate {
+        width: 100%;
+        min-height: 46px;
+      }
+
+      .ready-panel .panel-locate {
+        width: 48px;
+      }
+
+      .coordinate-box,
+      .spec-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        scroll-behavior: auto !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="toolbar" aria-label="Preview controls">
+      <div class="toolbar-top">
+        <div class="brand">
+          <img src="../../assets/images/utmlogoheader.png" alt="UTM Go">
+          <div class="brand-copy">
+            <p class="eyebrow">Driver broadcast preview</p>
+            <h1>Locate section options</h1>
+            <p>Choose a cleaner replacement for the current driver GPS locate section. This HTML preview does not change Flutter.</p>
+          </div>
+        </div>
+        <button class="theme-toggle" type="button" id="themeToggle">Dark preview</button>
+      </div>
+      <div class="chooser">
+        <p class="chooser-title">Choose a design option</p>
+        <div class="segmented" role="group" aria-label="Locate section design options">
+          <button type="button" data-choice="compact" aria-pressed="false">
+            <strong>Compact Status Bar</strong>
+            <span>Slim card below the map with status, copy, and Locate.</span>
+          </button>
+          <button type="button" data-choice="panel" aria-pressed="true">
+            <strong>Map Control Panel</strong>
+            <span>Floating map overlay with a strong locate control.</span>
+          </button>
+          <button type="button" data-choice="console" aria-pressed="false">
+            <strong>Driver GPS Console</strong>
+            <span>Operational GPS readout with coordinates and action.</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <section class="canvas" aria-label="Driver broadcast locate design preview">
+      <article class="phone" aria-label="Phone preview">
+        <div class="screen">
+          <header class="topbar">
+            <button class="back" type="button" aria-label="Back">
+              <span aria-hidden="true">&lt;</span>
+            </button>
+            <strong>Driver broadcast</strong>
+            <span aria-hidden="true" style="width:44px"></span>
+          </header>
+
+          <section class="hero" aria-label="Broadcast status">
+            <span>Live route</span>
+            <h2>Route K10</h2>
+            <p>Broadcast your assigned bus location using a modest Spark-plan-friendly update interval.</p>
+          </section>
+
+          <section class="route-card" aria-label="Assigned route">
+            <span class="route-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M6 17h12"/><path d="M6 17v2"/><path d="M18 17v2"/><path d="M5 6h14l1 5v5H4v-5z"/><path d="M8 9h8"/><path d="M8 13h.01"/><path d="M16 13h.01"/></svg>
+            </span>
+            <div>
+              <strong>Assigned route</strong>
+              <span>Library to Kolej 9, active route</span>
+            </div>
+          </section>
+
+          <section class="map-card" aria-label="Route map mock">
+            <div class="map-grid"></div>
+            <div class="route-line"></div>
+            <div class="map-label">OpenStreetMap route preview</div>
+            <div class="bus-pin">BUS</div>
+            <div class="user-pin">YOU</div>
+          </section>
+
+          <section class="locate-preview" aria-label="Unavailable and ready location states">
+            <p class="state-title">Unavailable state</p>
+            <div class="option compact">
+              <div class="location-section compact-card">
+                <span class="gps-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 2v3"/><path d="M12 19v3"/><path d="M2 12h3"/><path d="M19 12h3"/></svg>
+                </span>
+                <div class="location-copy">
+                  <div class="status-row">
+                    <strong>Current location unavailable</strong>
+                    <span class="pill neutral">GPS</span>
+                  </div>
+                  <span>Tap Locate to show your GPS position on the map.</span>
+                </div>
+                <button class="locate-action" type="button">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M2 12h4"/><path d="M18 12h4"/></svg>
+                  Locate
+                </button>
+              </div>
+            </div>
+
+            <div class="option panel">
+              <div class="panel-wrap">
+                <div class="map-grid"></div>
+                <div class="route-line"></div>
+                <div class="bus-pin">BUS</div>
+                <div class="floating-panel">
+                  <div class="panel-copy">
+                    <strong>Current location unavailable</strong>
+                    <span>Tap Locate to show your GPS position on the map.</span>
+                  </div>
+                  <button class="panel-locate" type="button" aria-label="Locate">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M2 12h4"/><path d="M18 12h4"/></svg>
+                    Locate
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="option console">
+              <div class="location-section console-card">
+                <div class="console-head">
+                  <div class="console-title">
+                    <span class="gps-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 2v3"/><path d="M12 19v3"/><path d="M2 12h3"/><path d="M19 12h3"/></svg>
+                    </span>
+                    <div>
+                      <strong>Current location unavailable</strong>
+                      <div class="console-meta">Tap Locate to show your GPS position on the map.</div>
+                    </div>
+                  </div>
+                  <span class="pill neutral">GPS</span>
+                </div>
+                <div class="coordinate-box">
+                  <div class="coordinate-cell">
+                    <span>Latitude</span>
+                    <strong>Unavailable</strong>
+                  </div>
+                  <div class="coordinate-cell">
+                    <span>Longitude</span>
+                    <strong>Unavailable</strong>
+                  </div>
+                </div>
+                <button class="locate-action" type="button">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M2 12h4"/><path d="M18 12h4"/></svg>
+                  Locate
+                </button>
+              </div>
+            </div>
+
+            <p class="state-title">Ready state</p>
+            <div class="option compact">
+              <div class="location-section compact-card">
+                <span class="gps-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>
+                </span>
+                <div class="location-copy">
+                  <div class="status-row">
+                    <strong>Current location ready</strong>
+                    <span class="pill">Ready</span>
+                  </div>
+                  <span>1.55912, 103.63842</span>
+                </div>
+                <button class="locate-action" type="button">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M2 12h4"/><path d="M18 12h4"/></svg>
+                  Locate
+                </button>
+              </div>
+            </div>
+
+            <div class="option panel">
+              <div class="panel-wrap">
+                <div class="map-grid"></div>
+                <div class="route-line"></div>
+                <div class="bus-pin">BUS</div>
+                <div class="user-pin">YOU</div>
+                <div class="floating-panel ready-panel">
+                  <div class="panel-copy">
+                    <strong>Ready</strong>
+                  </div>
+                  <button class="panel-locate" type="button" aria-label="Locate">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M2 12h4"/><path d="M18 12h4"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="option console">
+              <div class="location-section console-card">
+                <div class="console-head">
+                  <div class="console-title">
+                    <span class="gps-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M2 12h2"/><path d="M20 12h2"/></svg>
+                    </span>
+                    <div>
+                      <strong>Current location ready</strong>
+                      <div class="console-meta">GPS preview is ready on the map.</div>
+                    </div>
+                  </div>
+                  <span class="pill">Ready</span>
+                </div>
+                <div class="coordinate-box">
+                  <div class="coordinate-cell">
+                    <span>Latitude</span>
+                    <strong>1.55912</strong>
+                  </div>
+                  <div class="coordinate-cell">
+                    <span>Longitude</span>
+                    <strong>103.63842</strong>
+                  </div>
+                </div>
+                <button class="locate-action" type="button">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4"/><path d="M12 18v4"/><path d="M2 12h4"/><path d="M18 12h4"/></svg>
+                  Locate
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </article>
+
+      <aside class="notes" aria-label="Option notes">
+        <h2>Option Notes</h2>
+        <p><strong>Compact Status Bar</strong> is the closest replacement for the current section. It is clean, minimal, and keeps the route map separate.</p>
+        <p><strong>Map Control Panel</strong> merges the locate status into the map area. It feels more immersive but gives less text room on small screens.</p>
+        <p><strong>Driver GPS Console</strong> is best if drivers need an operational GPS readout. It is the most explicit and the largest option.</p>
+        <div class="spec-grid">
+          <div class="spec">
+            <strong>Behavior</strong>
+            <span>Preview only. Flutter behavior remains unchanged until approval.</span>
+          </div>
+          <div class="spec">
+            <strong>Touch Target</strong>
+            <span>Locate controls are at least 44px tall in every option.</span>
+          </div>
+          <div class="spec">
+            <strong>Theme</strong>
+            <span>Light and dark modes keep UTM maroon and restrained gold accents.</span>
+          </div>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const root = document.documentElement;
+    const optionButtons = document.querySelectorAll('[data-choice]');
+    const themeToggle = document.getElementById('themeToggle');
+
+    optionButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const option = button.dataset.choice;
+        root.dataset.option = option;
+        optionButtons.forEach((candidate) => {
+          candidate.setAttribute('aria-pressed', String(candidate === button));
+        });
+      });
+    });
+
+    themeToggle.addEventListener('click', () => {
+      const isDark = root.dataset.theme === 'dark';
+      root.dataset.theme = isDark ? 'light' : 'dark';
+      themeToggle.textContent = isDark ? 'Dark preview' : 'Light preview';
+    });
+  </script>
+</body>
+</html>
