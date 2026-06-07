@@ -9,6 +9,42 @@ import '../models/facility.dart';
 import '../services/facility_booking_service.dart';
 import '../utils/booking_validation.dart';
 
+enum _AdminFacilityStatusFilter {
+  all,
+  available,
+  unavailable;
+
+  String get label {
+    return switch (this) {
+      _AdminFacilityStatusFilter.all => 'All statuses',
+      _AdminFacilityStatusFilter.available => 'Available',
+      _AdminFacilityStatusFilter.unavailable => 'Unavailable',
+    };
+  }
+
+  String? get status {
+    return switch (this) {
+      _AdminFacilityStatusFilter.all => null,
+      _AdminFacilityStatusFilter.available => facilityStatusAvailable,
+      _AdminFacilityStatusFilter.unavailable => facilityStatusUnavailable,
+    };
+  }
+}
+
+enum _AdminFacilitySortOption {
+  nameAz,
+  typeAz,
+  locationAz;
+
+  String get label {
+    return switch (this) {
+      _AdminFacilitySortOption.nameAz => 'Name A-Z',
+      _AdminFacilitySortOption.typeAz => 'Type A-Z',
+      _AdminFacilitySortOption.locationAz => 'Location A-Z',
+    };
+  }
+}
+
 class AdminFacilityManagementScreen extends StatefulWidget {
   const AdminFacilityManagementScreen({
     super.key,
@@ -25,12 +61,27 @@ class AdminFacilityManagementScreen extends StatefulWidget {
 class _AdminFacilityManagementScreenState
     extends State<AdminFacilityManagementScreen> {
   late final FacilityBookingService _facilityBookingService;
+  late final Stream<List<Facility>> _facilitiesStream;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String? _selectedType;
+  String? _selectedLocation;
+  _AdminFacilityStatusFilter _statusFilter = _AdminFacilityStatusFilter.all;
+  _AdminFacilitySortOption _sortOption = _AdminFacilitySortOption.nameAz;
+  bool _isFilterExpanded = false;
 
   @override
   void initState() {
     super.initState();
     _facilityBookingService =
         widget._facilityBookingService ?? FirebaseFacilityBookingService();
+    _facilitiesStream = _facilityBookingService.watchFacilities();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -51,7 +102,7 @@ class _AdminFacilityManagementScreenState
               maxWidth: AppDimensions.maxDashboardWidth,
             ),
             child: StreamBuilder<List<Facility>>(
-              stream: _facilityBookingService.watchFacilities(),
+              stream: _facilitiesStream,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -66,6 +117,17 @@ class _AdminFacilityManagementScreenState
                 }
 
                 final facilities = snapshot.data ?? const <Facility>[];
+                final facilityTypes = _filterOptions(
+                  facilities.map((facility) => facility.type),
+                );
+                final facilityLocations = _filterOptions(
+                  facilities.map((facility) => facility.location),
+                );
+                _correctUnavailableFilters(
+                  facilityTypes: facilityTypes,
+                  facilityLocations: facilityLocations,
+                );
+                final visibleFacilities = _filteredFacilities(facilities);
 
                 return ListView(
                   padding: const EdgeInsets.fromLTRB(
@@ -77,6 +139,49 @@ class _AdminFacilityManagementScreenState
                   children: [
                     _AdminFacilityHeader(facilityCount: facilities.length),
                     const SizedBox(height: AppDimensions.spacingLarge),
+                    if (facilities.isNotEmpty) ...[
+                      _AdminFacilityFilterConsole(
+                        searchController: _searchController,
+                        facilityTypes: facilityTypes,
+                        facilityLocations: facilityLocations,
+                        selectedType: _selectedType,
+                        selectedLocation: _selectedLocation,
+                        statusFilter: _statusFilter,
+                        sortOption: _sortOption,
+                        visibleCount: visibleFacilities.length,
+                        totalCount: facilities.length,
+                        hasActiveFilters: _hasActiveFilters,
+                        isExpanded: _isFilterExpanded,
+                        onSearchChanged: (query) {
+                          setState(() => _searchQuery = query);
+                        },
+                        onTypeChanged: (type) {
+                          setState(() {
+                            _selectedType = type?.isEmpty == true ? null : type;
+                          });
+                        },
+                        onLocationChanged: (location) {
+                          setState(() {
+                            _selectedLocation = location?.isEmpty == true
+                                ? null
+                                : location;
+                          });
+                        },
+                        onStatusChanged: (status) {
+                          setState(() => _statusFilter = status);
+                        },
+                        onSortChanged: (sort) {
+                          setState(() => _sortOption = sort);
+                        },
+                        onToggleExpanded: () {
+                          setState(
+                            () => _isFilterExpanded = !_isFilterExpanded,
+                          );
+                        },
+                        onClearFilters: _clearFilters,
+                      ),
+                      const SizedBox(height: AppDimensions.spacingMedium),
+                    ],
                     if (facilities.isEmpty)
                       const _AdminFacilityMessageCard(
                         icon: Icons.meeting_room_outlined,
@@ -84,8 +189,21 @@ class _AdminFacilityManagementScreenState
                         message:
                             'Add bookable campus facilities for students to browse.',
                       )
+                    else if (visibleFacilities.isEmpty)
+                      _AdminFacilityMessageCard(
+                        icon: Icons.filter_alt_off_outlined,
+                        title: 'No matching facilities',
+                        message:
+                            'Try another facility name, type, location or status.',
+                        action: TextButton.icon(
+                          key: const Key('adminFacilityClearFilteredEmpty'),
+                          onPressed: _clearFilters,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Clear filters'),
+                        ),
+                      )
                     else
-                      for (final facility in facilities)
+                      for (final facility in visibleFacilities)
                         Padding(
                           padding: const EdgeInsets.only(
                             bottom: AppDimensions.spacingMedium,
@@ -104,6 +222,115 @@ class _AdminFacilityManagementScreenState
         ),
       ),
     );
+  }
+
+  bool get _hasActiveFilters {
+    return _searchQuery.trim().isNotEmpty ||
+        _selectedType != null ||
+        _selectedLocation != null ||
+        _statusFilter != _AdminFacilityStatusFilter.all ||
+        _sortOption != _AdminFacilitySortOption.nameAz;
+  }
+
+  List<String> _filterOptions(Iterable<String> values) {
+    final options = values
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toSet()
+        .toList();
+    options.sort(_compareLabels);
+    return options;
+  }
+
+  List<Facility> _filteredFacilities(List<Facility> facilities) {
+    final query = _searchQuery.trim().toLowerCase();
+    final filtered = facilities.where((facility) {
+      if (_selectedType != null && facility.type.trim() != _selectedType) {
+        return false;
+      }
+      if (_selectedLocation != null &&
+          facility.location.trim() != _selectedLocation) {
+        return false;
+      }
+      if (_statusFilter.status != null &&
+          facility.status != _statusFilter.status) {
+        return false;
+      }
+      if (query.isEmpty) {
+        return true;
+      }
+
+      return [
+        facility.name,
+        facility.type,
+        facility.location,
+      ].join(' ').toLowerCase().contains(query);
+    }).toList();
+    filtered.sort(_compareFacilities);
+    return filtered;
+  }
+
+  int _compareFacilities(Facility a, Facility b) {
+    final primaryComparison = switch (_sortOption) {
+      _AdminFacilitySortOption.nameAz => _compareLabels(a.name, b.name),
+      _AdminFacilitySortOption.typeAz => _compareLabels(a.type, b.type),
+      _AdminFacilitySortOption.locationAz => _compareLabels(
+        a.location,
+        b.location,
+      ),
+    };
+    if (primaryComparison != 0) {
+      return primaryComparison;
+    }
+
+    final nameComparison = _compareLabels(a.name, b.name);
+    return nameComparison != 0
+        ? nameComparison
+        : _compareLabels(a.facilityId, b.facilityId);
+  }
+
+  int _compareLabels(String a, String b) {
+    return a.trim().toLowerCase().compareTo(b.trim().toLowerCase());
+  }
+
+  void _correctUnavailableFilters({
+    required List<String> facilityTypes,
+    required List<String> facilityLocations,
+  }) {
+    final typeIsUnavailable =
+        _selectedType != null && !facilityTypes.contains(_selectedType);
+    final locationIsUnavailable =
+        _selectedLocation != null &&
+        !facilityLocations.contains(_selectedLocation);
+    if (!typeIsUnavailable && !locationIsUnavailable) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        if (typeIsUnavailable) {
+          _selectedType = null;
+        }
+        if (locationIsUnavailable) {
+          _selectedLocation = null;
+        }
+      });
+    });
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _selectedType = null;
+      _selectedLocation = null;
+      _statusFilter = _AdminFacilityStatusFilter.all;
+      _sortOption = _AdminFacilitySortOption.nameAz;
+      _isFilterExpanded = false;
+    });
   }
 
   Future<void> _showFacilitySheet([Facility? facility]) async {
@@ -164,6 +391,185 @@ class _AdminFacilityManagementScreenState
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _AdminFacilityFilterConsole extends StatelessWidget {
+  const _AdminFacilityFilterConsole({
+    required this.searchController,
+    required this.facilityTypes,
+    required this.facilityLocations,
+    required this.selectedType,
+    required this.selectedLocation,
+    required this.statusFilter,
+    required this.sortOption,
+    required this.visibleCount,
+    required this.totalCount,
+    required this.hasActiveFilters,
+    required this.isExpanded,
+    required this.onSearchChanged,
+    required this.onTypeChanged,
+    required this.onLocationChanged,
+    required this.onStatusChanged,
+    required this.onSortChanged,
+    required this.onToggleExpanded,
+    required this.onClearFilters,
+  });
+
+  final TextEditingController searchController;
+  final List<String> facilityTypes;
+  final List<String> facilityLocations;
+  final String? selectedType;
+  final String? selectedLocation;
+  final _AdminFacilityStatusFilter statusFilter;
+  final _AdminFacilitySortOption sortOption;
+  final int visibleCount;
+  final int totalCount;
+  final bool hasActiveFilters;
+  final bool isExpanded;
+  final ValueChanged<String> onSearchChanged;
+  final ValueChanged<String?> onTypeChanged;
+  final ValueChanged<String?> onLocationChanged;
+  final ValueChanged<_AdminFacilityStatusFilter> onStatusChanged;
+  final ValueChanged<_AdminFacilitySortOption> onSortChanged;
+  final VoidCallback onToggleExpanded;
+  final VoidCallback onClearFilters;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppDimensions.spacingMedium),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Facilities',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                Text(
+                  '$visibleCount of $totalCount',
+                  key: const Key('adminFacilityFilterSummary'),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+            const SizedBox(height: AppDimensions.spacingMedium),
+            TextField(
+              key: const Key('adminFacilitySearchField'),
+              controller: searchController,
+              textInputAction: TextInputAction.search,
+              decoration: const InputDecoration(
+                labelText: 'Search facilities',
+                hintText: 'Name, type, or location',
+                prefixIcon: Icon(Icons.search_rounded),
+              ),
+              onChanged: onSearchChanged,
+            ),
+            const SizedBox(height: AppDimensions.spacingSmall),
+            Row(
+              children: [
+                TextButton.icon(
+                  key: const Key('adminFacilityFilterToggle'),
+                  onPressed: onToggleExpanded,
+                  icon: Icon(
+                    isExpanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.tune_rounded,
+                  ),
+                  label: Text(isExpanded ? 'Hide filters' : 'Filters'),
+                ),
+                const Spacer(),
+                if (hasActiveFilters)
+                  TextButton.icon(
+                    key: const Key('adminFacilityClearFilters'),
+                    onPressed: onClearFilters,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Clear'),
+                  ),
+              ],
+            ),
+            if (isExpanded) ...[
+              const SizedBox(height: AppDimensions.spacingSmall),
+              DropdownButtonFormField<String>(
+                key: ValueKey('adminFacilityTypeFilter_${selectedType ?? ''}'),
+                initialValue: selectedType ?? '',
+                decoration: const InputDecoration(
+                  labelText: 'Facility type',
+                  prefixIcon: Icon(Icons.category_outlined),
+                ),
+                items: [
+                  const DropdownMenuItem(value: '', child: Text('All types')),
+                  for (final type in facilityTypes)
+                    DropdownMenuItem(value: type, child: Text(type)),
+                ],
+                onChanged: onTypeChanged,
+              ),
+              const SizedBox(height: AppDimensions.spacingMedium),
+              DropdownButtonFormField<String>(
+                key: ValueKey(
+                  'adminFacilityLocationFilter_${selectedLocation ?? ''}',
+                ),
+                initialValue: selectedLocation ?? '',
+                decoration: const InputDecoration(
+                  labelText: 'Location',
+                  prefixIcon: Icon(Icons.location_on_outlined),
+                ),
+                items: [
+                  const DropdownMenuItem(
+                    value: '',
+                    child: Text('All locations'),
+                  ),
+                  for (final location in facilityLocations)
+                    DropdownMenuItem(value: location, child: Text(location)),
+                ],
+                onChanged: onLocationChanged,
+              ),
+              const SizedBox(height: AppDimensions.spacingMedium),
+              DropdownButtonFormField<_AdminFacilityStatusFilter>(
+                key: const Key('adminFacilityStatusFilter'),
+                initialValue: statusFilter,
+                decoration: const InputDecoration(
+                  labelText: 'Status',
+                  prefixIcon: Icon(Icons.toggle_on_outlined),
+                ),
+                items: [
+                  for (final filter in _AdminFacilityStatusFilter.values)
+                    DropdownMenuItem(value: filter, child: Text(filter.label)),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    onStatusChanged(value);
+                  }
+                },
+              ),
+              const SizedBox(height: AppDimensions.spacingMedium),
+              DropdownButtonFormField<_AdminFacilitySortOption>(
+                key: const Key('adminFacilitySortFilter'),
+                initialValue: sortOption,
+                decoration: const InputDecoration(
+                  labelText: 'Sort by',
+                  prefixIcon: Icon(Icons.sort_rounded),
+                ),
+                items: [
+                  for (final option in _AdminFacilitySortOption.values)
+                    DropdownMenuItem(value: option, child: Text(option.label)),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    onSortChanged(value);
+                  }
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -394,6 +800,7 @@ class _AdminFacilityTile extends StatelessWidget {
     final colors = UtmThemeColors.of(context);
 
     return Card(
+      key: Key('adminFacilityTile_${facility.facilityId}'),
       child: ListTile(
         contentPadding: const EdgeInsets.all(AppDimensions.spacingMedium),
         leading: CircleAvatar(
@@ -409,11 +816,13 @@ class _AdminFacilityTile extends StatelessWidget {
           spacing: AppDimensions.spacingSmall,
           children: [
             IconButton(
+              key: Key('editFacility_${facility.facilityId}'),
               tooltip: 'Edit facility',
               onPressed: onEdit,
               icon: const Icon(Icons.edit_outlined),
             ),
             IconButton(
+              key: Key('deleteFacility_${facility.facilityId}'),
               tooltip: 'Delete facility',
               onPressed: onDelete,
               icon: const Icon(Icons.delete_outline_rounded),
@@ -456,11 +865,13 @@ class _AdminFacilityMessageCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.message,
+    this.action,
   });
 
   final IconData icon;
   final String title;
   final String message;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -471,6 +882,7 @@ class _AdminFacilityMessageCard extends StatelessWidget {
           icon: icon,
           title: title,
           message: message,
+          action: action,
         ),
       ),
     );
@@ -482,11 +894,13 @@ class _AdminFacilityMessageContent extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.message,
+    this.action,
   });
 
   final IconData icon;
   final String title;
   final String message;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -504,6 +918,10 @@ class _AdminFacilityMessageContent extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium,
         ),
+        if (action != null) ...[
+          const SizedBox(height: AppDimensions.spacingMedium),
+          action!,
+        ],
       ],
     );
   }

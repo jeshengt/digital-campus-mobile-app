@@ -23,6 +23,7 @@ import '../../features/bus_tracking/screens/bus_tracking_map_screen.dart';
 import '../../features/bus_tracking/screens/driver_bus_broadcast_screen.dart';
 import '../../features/driver/screens/driver_dashboard_screen.dart';
 import '../../features/lecturer/screens/lecturer_dashboard_screen.dart';
+import '../../features/notifications/screens/notifications_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/staff/screens/staff_dashboard_screen.dart';
 import '../../features/student/screens/student_dashboard_screen.dart';
@@ -38,6 +39,7 @@ class AppRoutes {
   static const emailVerification = '/email-verification';
   static const roleGateway = '/role-gateway';
   static const profile = '/profile';
+  static const notifications = '/notifications';
   static const studentDashboard = '/student';
   static const lecturerDashboard = '/lecturer';
   static const driverDashboard = '/driver';
@@ -73,6 +75,7 @@ class AppRoutes {
       emailVerification: (_) => const EmailVerificationScreen(),
       roleGateway: (_) => const RoleGatewayScreen(),
       profile: (_) => const ProfileScreen(),
+      notifications: (_) => const NotificationsScreen(),
       studentDashboard: (_) => const StudentDashboardScreen(),
       lecturerDashboard: (_) => const LecturerDashboardScreen(),
       driverDashboard: (_) => const DriverDashboardScreen(),

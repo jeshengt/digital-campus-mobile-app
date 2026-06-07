@@ -15,6 +15,7 @@ import 'package:utmgo/features/booking/screens/staff_booking_review_screen.dart'
 import 'package:utmgo/features/booking/screens/staff_slot_management_screen.dart';
 import 'package:utmgo/features/booking/screens/student_facility_booking_screen.dart';
 import 'package:utmgo/features/booking/services/facility_booking_service.dart';
+import 'package:utmgo/features/booking/services/staff_booking_review_preferences.dart';
 import 'package:utmgo/features/booking/utils/booking_validation.dart';
 import 'package:utmgo/features/staff/screens/staff_dashboard_screen.dart';
 import 'package:utmgo/features/student/screens/student_dashboard_screen.dart';
@@ -592,7 +593,381 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('No facilities yet'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('No bookings yet'),
+        160,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('No bookings yet'), findsOneWidget);
+    });
+
+    testWidgets('student facility search is visible and filters start hidden', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StudentFacilityBookingScreen(
+            facilityBookingService: _FakeFacilityBookingService(
+              facilities: [_sampleFacility()],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('studentFacilitySearchField')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('studentFacilityFilterToggle')),
+        findsOneWidget,
+      );
+      expect(find.text('1 of 1'), findsOneWidget);
+      expect(find.text('Facility type'), findsNothing);
+      expect(find.text('Location'), findsNothing);
+      expect(find.byKey(const Key('studentFacilitySortFilter')), findsNothing);
+      expect(
+        find.byKey(const Key('studentFacilityClearFilters')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('student facility search matches name type and location', (
+      tester,
+    ) async {
+      _useTallTestSurface(tester);
+      final service = _FakeFacilityBookingService(
+        facilities: [
+          _sampleFacility(),
+          _sampleFacility(
+            facilityId: 'facility-2',
+            name: 'Computer Lab B',
+            type: 'Lab',
+            location: 'Block N28',
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StudentFacilityBookingScreen(facilityBookingService: service),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      final searchField = find.byKey(const Key('studentFacilitySearchField'));
+
+      await tester.tap(searchField);
+      await tester.pump();
+      await tester.enterText(searchField, 'c');
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(tester.testTextInput.isVisible, isTrue);
+      await tester.enterText(searchField, 'computer');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('bookFacility_facility-2')), findsOneWidget);
+      expect(find.byKey(const Key('bookFacility_facility-1')), findsNothing);
+
+      await tester.enterText(searchField, 'room');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('bookFacility_facility-1')), findsOneWidget);
+      expect(find.byKey(const Key('bookFacility_facility-2')), findsNothing);
+
+      await tester.enterText(searchField, 'n28');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('bookFacility_facility-2')), findsOneWidget);
+      expect(find.byKey(const Key('bookFacility_facility-1')), findsNothing);
+      expect(find.text('1 of 2'), findsOneWidget);
+      expect(tester.testTextInput.isVisible, isTrue);
+      expect(service.watchAvailableFacilitiesCallCount, 1);
+      expect(service.watchCurrentStudentBookingsCallCount, 1);
+    });
+
+    testWidgets(
+      'student facility type and location filters combine and clear',
+      (tester) async {
+        _useTallTestSurface(tester);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: StudentFacilityBookingScreen(
+              facilityBookingService: _FakeFacilityBookingService(
+                facilities: [
+                  _sampleFacility(),
+                  _sampleFacility(
+                    facilityId: 'facility-2',
+                    name: 'Computer Lab B',
+                    type: 'Lab',
+                    location: 'Block N28',
+                  ),
+                  _sampleFacility(
+                    facilityId: 'facility-3',
+                    name: 'Computer Lab C',
+                    type: 'Lab',
+                    location: 'Library Level 2',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        await _expandStudentFacilityFilters(tester);
+
+        expect(find.text('Facility type'), findsOneWidget);
+        expect(find.text('Location'), findsOneWidget);
+        expect(
+          find.byKey(const Key('studentFacilitySortFilter')),
+          findsOneWidget,
+        );
+        expect(find.text('Name A-Z'), findsOneWidget);
+
+        await tester.tap(find.text('All types'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Lab').last);
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('bookFacility_facility-1')), findsNothing);
+        expect(
+          find.byKey(const Key('bookFacility_facility-2')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('bookFacility_facility-3')),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.text('All locations'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Block N28').last);
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const Key('bookFacility_facility-2')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const Key('bookFacility_facility-3')), findsNothing);
+        expect(find.text('1 of 3'), findsOneWidget);
+
+        await tester.tap(find.byKey(const Key('studentFacilityClearFilters')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const Key('bookFacility_facility-1')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('bookFacility_facility-2')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('bookFacility_facility-3')),
+          findsOneWidget,
+        );
+        expect(find.text('Facility type'), findsNothing);
+        expect(find.text('3 of 3'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'student facility sort reorders filtered facilities and clears',
+      (tester) async {
+        _useTallTestSurface(tester);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: StudentFacilityBookingScreen(
+              facilityBookingService: _FakeFacilityBookingService(
+                facilities: [
+                  _sampleFacility(
+                    facilityId: 'facility-3',
+                    name: 'Gamma Lab',
+                    type: 'Lab',
+                    location: 'Block B',
+                  ),
+                  _sampleFacility(
+                    facilityId: 'facility-1',
+                    name: 'Alpha Lab',
+                    type: 'Lab',
+                    location: 'Block C',
+                  ),
+                  _sampleFacility(
+                    facilityId: 'facility-2',
+                    name: 'Beta Room',
+                    type: 'Room',
+                    location: 'Block A',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(
+          tester
+              .getTopLeft(find.byKey(const Key('bookFacility_facility-1')))
+              .dy,
+          lessThan(
+            tester
+                .getTopLeft(find.byKey(const Key('bookFacility_facility-2')))
+                .dy,
+          ),
+        );
+        expect(
+          tester
+              .getTopLeft(find.byKey(const Key('bookFacility_facility-2')))
+              .dy,
+          lessThan(
+            tester
+                .getTopLeft(find.byKey(const Key('bookFacility_facility-3')))
+                .dy,
+          ),
+        );
+
+        await _expandStudentFacilityFilters(tester);
+        await tester.tap(find.text('Name A-Z'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Location A-Z').last);
+        await tester.pumpAndSettle();
+
+        expect(
+          tester
+              .getTopLeft(find.byKey(const Key('bookFacility_facility-2')))
+              .dy,
+          lessThan(
+            tester
+                .getTopLeft(find.byKey(const Key('bookFacility_facility-3')))
+                .dy,
+          ),
+        );
+        expect(
+          tester
+              .getTopLeft(find.byKey(const Key('bookFacility_facility-3')))
+              .dy,
+          lessThan(
+            tester
+                .getTopLeft(find.byKey(const Key('bookFacility_facility-1')))
+                .dy,
+          ),
+        );
+
+        await tester.enterText(
+          find.byKey(const Key('studentFacilitySearchField')),
+          'lab',
+        );
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('bookFacility_facility-2')), findsNothing);
+        expect(
+          tester
+              .getTopLeft(find.byKey(const Key('bookFacility_facility-3')))
+              .dy,
+          lessThan(
+            tester
+                .getTopLeft(find.byKey(const Key('bookFacility_facility-1')))
+                .dy,
+          ),
+        );
+
+        await tester.enterText(
+          find.byKey(const Key('studentFacilitySearchField')),
+          '',
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Location A-Z'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Type A-Z').last);
+        await tester.pumpAndSettle();
+        expect(find.text('Type A-Z'), findsOneWidget);
+        expect(
+          tester
+              .getTopLeft(find.byKey(const Key('bookFacility_facility-1')))
+              .dy,
+          lessThan(
+            tester
+                .getTopLeft(find.byKey(const Key('bookFacility_facility-3')))
+                .dy,
+          ),
+        );
+        expect(
+          tester
+              .getTopLeft(find.byKey(const Key('bookFacility_facility-3')))
+              .dy,
+          lessThan(
+            tester
+                .getTopLeft(find.byKey(const Key('bookFacility_facility-2')))
+                .dy,
+          ),
+        );
+
+        await tester.tap(find.byKey(const Key('studentFacilityClearFilters')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('studentFacilitySortFilter')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const Key('studentFacilityClearFilters')),
+          findsNothing,
+        );
+        expect(
+          tester
+              .getTopLeft(find.byKey(const Key('bookFacility_facility-1')))
+              .dy,
+          lessThan(
+            tester
+                .getTopLeft(find.byKey(const Key('bookFacility_facility-2')))
+                .dy,
+          ),
+        );
+        expect(
+          tester
+              .getTopLeft(find.byKey(const Key('bookFacility_facility-2')))
+              .dy,
+          lessThan(
+            tester
+                .getTopLeft(find.byKey(const Key('bookFacility_facility-3')))
+                .dy,
+          ),
+        );
+      },
+    );
+
+    testWidgets('student facility filtered empty differs from true empty', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StudentFacilityBookingScreen(
+            facilityBookingService: _FakeFacilityBookingService(
+              facilities: [_sampleFacility()],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('studentFacilitySearchField')),
+        'not found',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('No matching facilities'), findsOneWidget);
+      expect(find.text('No facilities yet'), findsNothing);
+      expect(
+        find.byKey(const Key('studentFacilityClearFilteredEmpty')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('studentFacilityClearFilters')),
+        findsNothing,
+      );
+      expect(find.text('0 of 1'), findsOneWidget);
     });
 
     testWidgets('student booking screen shows own booking states', (
@@ -771,6 +1146,7 @@ void main() {
           theme: AppTheme.light,
           home: StaffBookingReviewScreen(
             facilityBookingService: _FakeFacilityBookingService(),
+            preferenceStore: _FakeStaffBookingReviewPreferenceStore(),
           ),
         ),
       );
@@ -790,11 +1166,17 @@ void main() {
             facilityBookingService: _FakeFacilityBookingService(
               reviewBookings: [_sampleBooking()],
             ),
+            preferenceStore: _FakeStaffBookingReviewPreferenceStore(),
           ),
         ),
       );
 
       await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const Key('approveBooking_booking-1')),
+        160,
+        scrollable: find.byType(Scrollable).first,
+      );
 
       expect(find.byKey(const Key('approveBooking_booking-1')), findsOneWidget);
       expect(
@@ -802,6 +1184,601 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets('staff review screen minimizes filters by default', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StaffBookingReviewScreen(
+            facilityBookingService: _FakeFacilityBookingService(
+              reviewBookings: [_sampleBooking()],
+            ),
+            preferenceStore: _FakeStaffBookingReviewPreferenceStore(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Filters'), findsOneWidget);
+      expect(
+        find.byKey(const Key('staffBookingFilterSummary')),
+        findsOneWidget,
+      );
+      expect(find.text('Default view'), findsOneWidget);
+      expect(find.byKey(const Key('staffBookingFilterToggle')), findsOneWidget);
+      expect(find.byKey(const Key('staffBookingSearchField')), findsNothing);
+      expect(find.byKey(const Key('staffBookingClearFilters')), findsNothing);
+    });
+
+    testWidgets('staff review expands sort and filter controls', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StaffBookingReviewScreen(
+            facilityBookingService: _FakeFacilityBookingService(
+              reviewBookings: [_sampleBooking()],
+            ),
+            preferenceStore: _FakeStaffBookingReviewPreferenceStore(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await _expandStaffBookingFilters(tester);
+
+      expect(find.text('All'), findsOneWidget);
+      expect(find.text('Pending'), findsOneWidget);
+      expect(find.text('Facility'), findsOneWidget);
+      expect(
+        find.byKey(const Key('staffBookingFacilityTypeFilter')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('staffBookingFacilityLocationFilter')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('staffBookingSearchField')), findsOneWidget);
+      expect(find.text('Sort by'), findsOneWidget);
+      expect(find.byKey(const Key('staffBookingClearFilters')), findsNothing);
+      expect(
+        find.byKey(const Key('staffBookingCollapsedClearFilters')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('staff review status filter shows matching requests', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StaffBookingReviewScreen(
+            facilityBookingService: _FakeFacilityBookingService(
+              reviewBookings: [
+                _sampleBooking(),
+                _sampleBooking(
+                  bookingId: 'booking-2',
+                  facilityId: 'facility-2',
+                  facilityName: 'Computer Lab B',
+                  status: bookingStatusApproved,
+                ),
+              ],
+            ),
+            preferenceStore: _FakeStaffBookingReviewPreferenceStore(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await _expandStaffBookingFilters(tester);
+      await tester.tap(
+        find.byKey(const Key('staffBookingStatusFilter_approved')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('staffBookingCollapsedClearFilters')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('staffBookingClearFilters')), findsNothing);
+      await tester.scrollUntilVisible(
+        find.text('Computer Lab B'),
+        160,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(find.text('Computer Lab B'), findsOneWidget);
+      expect(find.text('Seminar Room A'), findsNothing);
+    });
+
+    testWidgets('staff review facility filter narrows requests', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StaffBookingReviewScreen(
+            facilityBookingService: _FakeFacilityBookingService(
+              reviewBookings: [
+                _sampleBooking(),
+                _sampleBooking(
+                  bookingId: 'booking-2',
+                  facilityId: 'facility-2',
+                  facilityName: 'Computer Lab B',
+                ),
+              ],
+            ),
+            preferenceStore: _FakeStaffBookingReviewPreferenceStore(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await _expandStaffBookingFilters(tester);
+      await tester.tap(find.text('All facilities'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Computer Lab B').last);
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Computer Lab B'),
+        160,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(find.text('Computer Lab B'), findsOneWidget);
+      expect(find.text('Seminar Room A'), findsNothing);
+    });
+
+    testWidgets('staff review facility type and location filters requests', (
+      tester,
+    ) async {
+      _useTallTestSurface(tester);
+      final preferenceStore = _FakeStaffBookingReviewPreferenceStore();
+      final service = _FakeFacilityBookingService(
+        facilities: [
+          _sampleFacility(type: 'Room', location: 'Library Level 2'),
+          _sampleFacility(
+            facilityId: 'facility-2',
+            name: 'Computer Lab B',
+            type: 'Lab',
+            location: 'Engineering Block',
+          ),
+          _sampleFacility(
+            facilityId: 'unused-facility',
+            name: 'Unused Hall',
+            type: 'Hall',
+            location: 'Main Block',
+          ),
+        ],
+        reviewBookings: [
+          _sampleBooking(),
+          _sampleBooking(
+            bookingId: 'booking-2',
+            facilityId: 'facility-2',
+            facilityName: 'Computer Lab B',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StaffBookingReviewScreen(
+            facilityBookingService: service,
+            preferenceStore: preferenceStore,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _expandStaffBookingFilters(tester);
+
+      await _selectDropdownOption(
+        tester,
+        const Key('staffBookingFacilityTypeFilter'),
+        'Lab',
+      );
+      expect(find.text('Lab - 1 shown'), findsOneWidget);
+      expect(find.text('Computer Lab B'), findsOneWidget);
+      expect(find.text('Seminar Room A'), findsNothing);
+
+      await _selectDropdownOption(
+        tester,
+        const Key('staffBookingFacilityTypeFilter'),
+        'All types',
+      );
+      await _selectDropdownOption(
+        tester,
+        const Key('staffBookingFacilityLocationFilter'),
+        'Library Level 2',
+      );
+      expect(find.text('Library Level 2 - 1 shown'), findsOneWidget);
+      expect(find.text('Seminar Room A'), findsOneWidget);
+      expect(find.text('Computer Lab B'), findsNothing);
+      expect(find.text('Hall'), findsNothing);
+      expect(find.text('Main Block'), findsNothing);
+      expect(service.watchBookingRequestsCallCount, 1);
+      expect(service.watchFacilitiesCallCount, 1);
+      expect(preferenceStore.savedPreferences, isEmpty);
+    });
+
+    testWidgets(
+      'staff review metadata filters combine and exclude missing data',
+      (tester) async {
+        _useTallTestSurface(tester);
+        final preferenceStore = _FakeStaffBookingReviewPreferenceStore();
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: StaffBookingReviewScreen(
+              facilityBookingService: _FakeFacilityBookingService(
+                facilities: [
+                  _sampleFacility(type: 'Room', location: 'Library Level 2'),
+                  _sampleFacility(
+                    facilityId: 'facility-2',
+                    name: 'Computer Lab B',
+                    type: 'Lab',
+                    location: 'Engineering Block',
+                  ),
+                ],
+                reviewBookings: [
+                  _sampleBooking(),
+                  _sampleBooking(
+                    bookingId: 'booking-2',
+                    facilityId: 'facility-2',
+                    facilityName: 'Computer Lab B',
+                    studentName: 'Daniel Tan',
+                    status: bookingStatusApproved,
+                  ),
+                  _sampleBooking(
+                    bookingId: 'booking-missing',
+                    facilityId: 'missing-facility',
+                    facilityName: 'Archived Facility',
+                  ),
+                ],
+              ),
+              preferenceStore: preferenceStore,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Archived Facility'), findsOneWidget);
+        await _expandStaffBookingFilters(tester);
+        await _selectDropdownOption(
+          tester,
+          const ValueKey('staffBookingFacilityFilter_'),
+          'Computer Lab B',
+        );
+        await _selectDropdownOption(
+          tester,
+          const Key('staffBookingFacilityTypeFilter'),
+          'Lab',
+        );
+        await _selectDropdownOption(
+          tester,
+          const Key('staffBookingFacilityLocationFilter'),
+          'Engineering Block',
+        );
+        await tester.tap(
+          find.byKey(const Key('staffBookingStatusFilter_approved')),
+        );
+        await tester.pumpAndSettle();
+        final searchField = find.byKey(const Key('staffBookingSearchField'));
+        await tester.enterText(searchField, 'daniel');
+        await tester.pumpAndSettle();
+
+        expect(find.text('Computer Lab B'), findsWidgets);
+        expect(find.text('Seminar Room A'), findsNothing);
+        expect(find.text('Archived Facility'), findsNothing);
+        expect(
+          find.text(
+            'Approved - Computer Lab B - Lab - Engineering Block - Search: daniel - 1 shown',
+          ),
+          findsOneWidget,
+        );
+
+        await tester.tap(
+          find.byKey(const Key('staffBookingCollapsedClearFilters')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Default view'), findsOneWidget);
+        expect(find.text('Seminar Room A'), findsOneWidget);
+        expect(find.text('Computer Lab B'), findsOneWidget);
+        expect(find.text('Archived Facility'), findsOneWidget);
+        expect(find.byKey(const Key('staffBookingSearchField')), findsNothing);
+        expect(
+          preferenceStore.savedPreferences.last,
+          same(StaffBookingReviewPreferences.defaults),
+        );
+      },
+    );
+
+    testWidgets('staff review search matches student email and facility', (
+      tester,
+    ) async {
+      final service = _FakeFacilityBookingService(
+        reviewBookings: [
+          _sampleBooking(),
+          _sampleBooking(
+            bookingId: 'booking-2',
+            facilityId: 'facility-2',
+            facilityName: 'Computer Lab B',
+            studentName: 'Daniel Tan',
+            studentEmail: 'daniel@example.com',
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StaffBookingReviewScreen(
+            facilityBookingService: service,
+            preferenceStore: _FakeStaffBookingReviewPreferenceStore(),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await _expandStaffBookingFilters(tester);
+      final searchField = find.byKey(const Key('staffBookingSearchField'));
+      await tester.tap(searchField);
+      await tester.pump();
+      await tester.enterText(searchField, 'd');
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(tester.testTextInput.isVisible, isTrue);
+      await tester.enterText(searchField, 'daniel@example.com');
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Computer Lab B'),
+        160,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(find.text('Computer Lab B'), findsOneWidget);
+      expect(find.text('Seminar Room A'), findsNothing);
+
+      await tester.enterText(searchField, 'seminar');
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Seminar Room A'),
+        160,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(find.text('Seminar Room A'), findsOneWidget);
+      expect(find.text('Computer Lab B'), findsNothing);
+      expect(tester.testTextInput.isVisible, isTrue);
+      expect(service.watchBookingRequestsCallCount, 1);
+      expect(service.watchFacilitiesCallCount, 1);
+    });
+
+    testWidgets('staff review persisted date range filters requests', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StaffBookingReviewScreen(
+            facilityBookingService: _FakeFacilityBookingService(
+              reviewBookings: [
+                _sampleBooking(requestedDate: DateTime(2026, 5, 25)),
+                _sampleBooking(
+                  bookingId: 'booking-2',
+                  facilityId: 'facility-2',
+                  facilityName: 'Computer Lab B',
+                  requestedDate: DateTime(2026, 6, 4),
+                  startTime: DateTime(2026, 6, 4, 14),
+                  endTime: DateTime(2026, 6, 4, 16),
+                ),
+              ],
+            ),
+            preferenceStore: _FakeStaffBookingReviewPreferenceStore(
+              initialPreferences: StaffBookingReviewPreferences(
+                fromDate: DateTime(2026, 6, 1),
+                toDate: DateTime(2026, 6, 30),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(find.text('01/06/2026 to 30/06/2026 - 1 shown'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Computer Lab B'),
+        160,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(find.text('Computer Lab B'), findsOneWidget);
+      expect(find.text('Seminar Room A'), findsNothing);
+      await _expandStaffBookingFilters(tester);
+      expect(find.text('From: 01/06/2026'), findsOneWidget);
+      expect(find.text('To: 30/06/2026'), findsOneWidget);
+    });
+
+    testWidgets('staff review sort reorders visible requests', (tester) async {
+      _useTallTestSurface(tester);
+      final bookings = [
+        _sampleBooking(
+          facilityName: 'Seminar Room A',
+          requestedDate: DateTime(2026, 6, 5),
+          startTime: DateTime(2026, 6, 5, 15),
+          endTime: DateTime(2026, 6, 5, 16),
+          createdAt: DateTime(2026, 6, 1, 8),
+        ),
+        _sampleBooking(
+          bookingId: 'booking-2',
+          facilityId: 'facility-2',
+          facilityName: 'Computer Lab B',
+          studentName: 'Daniel Tan',
+          requestedDate: DateTime(2026, 6, 3),
+          startTime: DateTime(2026, 6, 3, 9),
+          endTime: DateTime(2026, 6, 3, 10),
+          createdAt: DateTime(2026, 6, 2, 8),
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StaffBookingReviewScreen(
+            key: const Key('defaultSortStaffReview'),
+            facilityBookingService: _FakeFacilityBookingService(
+              reviewBookings: bookings,
+            ),
+            preferenceStore: _FakeStaffBookingReviewPreferenceStore(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getTopLeft(find.text('Computer Lab B').first).dy,
+        lessThan(tester.getTopLeft(find.text('Seminar Room A').first).dy),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StaffBookingReviewScreen(
+            key: const Key('latestSortStaffReview'),
+            facilityBookingService: _FakeFacilityBookingService(
+              reviewBookings: bookings,
+            ),
+            preferenceStore: _FakeStaffBookingReviewPreferenceStore(
+              initialPreferences: const StaffBookingReviewPreferences(
+                sortOption: StaffBookingSortOption.bookingLatest,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getTopLeft(find.text('Seminar Room A').first).dy,
+        lessThan(tester.getTopLeft(find.text('Computer Lab B').first).dy),
+      );
+    });
+
+    testWidgets('staff review loads persisted preferences', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StaffBookingReviewScreen(
+            facilityBookingService: _FakeFacilityBookingService(
+              reviewBookings: [
+                _sampleBooking(),
+                _sampleBooking(
+                  bookingId: 'booking-2',
+                  facilityId: 'facility-2',
+                  facilityName: 'Computer Lab B',
+                  status: bookingStatusApproved,
+                ),
+              ],
+            ),
+            preferenceStore: _FakeStaffBookingReviewPreferenceStore(
+              initialPreferences: const StaffBookingReviewPreferences(
+                statusFilter: StaffBookingStatusFilter.approved,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(find.text('Approved - 1 shown'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('Computer Lab B'),
+        160,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(find.text('Computer Lab B'), findsOneWidget);
+      expect(find.text('Seminar Room A'), findsNothing);
+    });
+
+    testWidgets('staff review clear filters restores defaults and saves', (
+      tester,
+    ) async {
+      _useTallTestSurface(tester);
+      final preferenceStore = _FakeStaffBookingReviewPreferenceStore(
+        initialPreferences: const StaffBookingReviewPreferences(
+          statusFilter: StaffBookingStatusFilter.approved,
+        ),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StaffBookingReviewScreen(
+            facilityBookingService: _FakeFacilityBookingService(
+              reviewBookings: [
+                _sampleBooking(),
+                _sampleBooking(
+                  bookingId: 'booking-2',
+                  facilityId: 'facility-2',
+                  facilityName: 'Computer Lab B',
+                  status: bookingStatusApproved,
+                ),
+              ],
+            ),
+            preferenceStore: preferenceStore,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('staffBookingCollapsedClearFilters')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Seminar Room A'), findsOneWidget);
+      expect(find.text('Computer Lab B'), findsOneWidget);
+      expect(find.text('Default view'), findsOneWidget);
+      expect(find.byKey(const Key('staffBookingSearchField')), findsNothing);
+      expect(
+        preferenceStore.savedPreferences.last.statusFilter,
+        StaffBookingStatusFilter.all,
+      );
+    });
+
+    testWidgets(
+      'staff review filtered empty state is separate from true empty',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: StaffBookingReviewScreen(
+              facilityBookingService: _FakeFacilityBookingService(
+                reviewBookings: [_sampleBooking()],
+              ),
+              preferenceStore: _FakeStaffBookingReviewPreferenceStore(
+                initialPreferences: const StaffBookingReviewPreferences(
+                  searchQuery: 'not found',
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        await tester.scrollUntilVisible(
+          find.text('No matching requests'),
+          160,
+          scrollable: find.byType(Scrollable).first,
+        );
+
+        expect(find.text('No matching requests'), findsOneWidget);
+        expect(find.text('No booking requests'), findsNothing);
+      },
+    );
 
     testWidgets('admin facility screen shows empty state', (tester) async {
       await tester.pumpWidget(
@@ -816,9 +1793,272 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('No facilities configured'), findsOneWidget);
+      expect(find.text('No matching facilities'), findsNothing);
+      expect(find.byKey(const Key('adminFacilitySearchField')), findsNothing);
+    });
+
+    testWidgets('admin facility search is stable and matches facility fields', (
+      tester,
+    ) async {
+      _useTallTestSurface(tester);
+      final service = _FakeFacilityBookingService(
+        facilities: [
+          _sampleFacility(
+            facilityId: 'facility-alpha',
+            name: 'Alpha Room',
+            type: 'Room',
+            location: 'West Wing',
+          ),
+          _sampleFacility(
+            facilityId: 'facility-beta',
+            name: 'Beta Hall',
+            type: 'Hall',
+            location: 'North Block',
+          ),
+          _sampleFacility(
+            facilityId: 'facility-gamma',
+            name: 'Gamma Lab',
+            type: 'Laboratory',
+            location: 'East Wing',
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: AdminFacilityManagementScreen(facilityBookingService: service),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('adminFacilitySearchField')), findsOneWidget);
+      expect(find.byKey(const Key('adminFacilitySortFilter')), findsNothing);
+      expect(find.text('3 of 3'), findsOneWidget);
+      expect(
+        _adminFacilityTop(tester, 'facility-alpha'),
+        lessThan(_adminFacilityTop(tester, 'facility-beta')),
+      );
+
+      final searchField = find.byKey(const Key('adminFacilitySearchField'));
+      await tester.tap(searchField);
+      await tester.enterText(searchField, 'g');
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(tester.testTextInput.isVisible, isTrue);
+      await tester.enterText(searchField, 'laboratory');
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('adminFacilityTile_facility-gamma')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('adminFacilityTile_facility-alpha')),
+        findsNothing,
+      );
+
+      await tester.enterText(searchField, 'east wing');
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('adminFacilityTile_facility-gamma')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('editFacility_facility-gamma')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('deleteFacility_facility-gamma')),
+        findsOneWidget,
+      );
+      expect(tester.testTextInput.isVisible, isTrue);
+      expect(service.watchFacilitiesCallCount, 1);
+    });
+
+    testWidgets('admin facility filters and sorting combine and clear', (
+      tester,
+    ) async {
+      _useTallTestSurface(tester);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: AdminFacilityManagementScreen(
+            facilityBookingService: _FakeFacilityBookingService(
+              facilities: [
+                _sampleFacility(
+                  facilityId: 'facility-alpha',
+                  name: 'Alpha Room',
+                  type: 'Zeta Space',
+                  location: 'West Wing',
+                ),
+                _sampleFacility(
+                  facilityId: 'facility-beta',
+                  name: 'Beta Hall',
+                  type: 'Hall',
+                  location: 'North Block',
+                ),
+                _sampleFacility(
+                  facilityId: 'facility-gamma',
+                  name: 'Gamma Lab',
+                  type: 'Lab',
+                  location: 'East Wing',
+                  status: facilityStatusUnavailable,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _expandAdminFacilityFilters(tester);
+
+      await _selectDropdownOption(
+        tester,
+        const Key('adminFacilitySortFilter'),
+        'Type A-Z',
+      );
+      expect(
+        _adminFacilityTop(tester, 'facility-beta'),
+        lessThan(_adminFacilityTop(tester, 'facility-gamma')),
+      );
+      expect(
+        _adminFacilityTop(tester, 'facility-gamma'),
+        lessThan(_adminFacilityTop(tester, 'facility-alpha')),
+      );
+
+      await _selectDropdownOption(
+        tester,
+        const Key('adminFacilitySortFilter'),
+        'Location A-Z',
+      );
+      expect(
+        _adminFacilityTop(tester, 'facility-gamma'),
+        lessThan(_adminFacilityTop(tester, 'facility-beta')),
+      );
+      expect(
+        _adminFacilityTop(tester, 'facility-beta'),
+        lessThan(_adminFacilityTop(tester, 'facility-alpha')),
+      );
+
+      await _selectDropdownOption(
+        tester,
+        const ValueKey('adminFacilityTypeFilter_'),
+        'Lab',
+      );
+      expect(
+        find.byKey(const Key('adminFacilityTile_facility-gamma')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('adminFacilityTile_facility-alpha')),
+        findsNothing,
+      );
+      await _selectDropdownOption(
+        tester,
+        const ValueKey('adminFacilityTypeFilter_Lab'),
+        'All types',
+      );
+      await _selectDropdownOption(
+        tester,
+        const ValueKey('adminFacilityLocationFilter_'),
+        'East Wing',
+      );
+      expect(
+        find.byKey(const Key('adminFacilityTile_facility-gamma')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('adminFacilityTile_facility-beta')),
+        findsNothing,
+      );
+      await _selectDropdownOption(
+        tester,
+        const ValueKey('adminFacilityLocationFilter_East Wing'),
+        'All locations',
+      );
+      await _selectDropdownOption(
+        tester,
+        const Key('adminFacilityStatusFilter'),
+        'Unavailable',
+      );
+      expect(
+        find.byKey(const Key('adminFacilityTile_facility-gamma')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('adminFacilityTile_facility-alpha')),
+        findsNothing,
+      );
+      await _selectDropdownOption(
+        tester,
+        const ValueKey('adminFacilityTypeFilter_'),
+        'Lab',
+      );
+      await _selectDropdownOption(
+        tester,
+        const ValueKey('adminFacilityLocationFilter_'),
+        'East Wing',
+      );
+      expect(find.text('1 of 3'), findsOneWidget);
+      expect(
+        find.byKey(const Key('adminFacilityTile_facility-gamma')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('adminFacilityTile_facility-alpha')),
+        findsNothing,
+      );
+
+      await tester.tap(find.byKey(const Key('adminFacilityClearFilters')));
+      await tester.pumpAndSettle();
+      expect(find.text('3 of 3'), findsOneWidget);
+      expect(find.byKey(const Key('adminFacilitySortFilter')), findsNothing);
+      expect(
+        _adminFacilityTop(tester, 'facility-alpha'),
+        lessThan(_adminFacilityTop(tester, 'facility-beta')),
+      );
+      expect(
+        find.byKey(const Key('adminFacilityTile_facility-gamma')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('admin facility filtered empty is separate from true empty', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: AdminFacilityManagementScreen(
+            facilityBookingService: _FakeFacilityBookingService(
+              facilities: [_sampleFacility()],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('adminFacilitySearchField')),
+        'not found',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('No matching facilities'), findsOneWidget);
+      expect(find.text('No facilities configured'), findsNothing);
+      expect(
+        find.byKey(const Key('adminFacilityClearFilteredEmpty')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const Key('adminFacilityClearFilteredEmpty')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Seminar Room A'), findsOneWidget);
+      expect(find.text('No matching facilities'), findsNothing);
     });
 
     testWidgets('staff slot management shows templates', (tester) async {
+      _useTallTestSurface(tester);
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
@@ -836,7 +2076,400 @@ void main() {
       expect(find.text('Booking Availability'), findsOneWidget);
       expect(find.text('Monday'), findsOneWidget);
       expect(find.text('Weekly - 09:00 - 10:00 - active'), findsOneWidget);
+      expect(
+        find.byKey(const Key('staffSlotSelectedFacilityDetail')),
+        findsOneWidget,
+      );
+      expect(find.text('Seminar Room A'), findsOneWidget);
+      expect(find.text('Room'), findsOneWidget);
+      expect(find.text('Library Level 2'), findsOneWidget);
+      expect(find.text('Capacity 40'), findsOneWidget);
+      expect(find.text('Available'), findsOneWidget);
+      expect(find.text('1 configured slot'), findsOneWidget);
+      expect(
+        find.byKey(const Key('staffSlotSelectedFacilityStatus')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('staffSlotSelectedFacilitySlotCount')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('staffSlotFacilitySearchField')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('staffSlotFacilitySortFilter')),
+        findsNothing,
+      );
+      expect(find.byKey(const Key('staffSlotSearchField')), findsNothing);
     });
+
+    testWidgets(
+      'staff slot facility search preserves selected slots and streams',
+      (tester) async {
+        _useTallTestSurface(tester);
+        final service = _FakeFacilityBookingService(
+          facilities: [
+            _sampleFacility(
+              facilityId: 'facility-alpha',
+              name: 'Alpha Room',
+              type: 'Room',
+              location: 'West Wing',
+            ),
+            _sampleFacility(
+              facilityId: 'facility-beta',
+              name: 'Beta Hall',
+              type: 'Hall',
+              location: 'North Block',
+            ),
+            _sampleFacility(
+              facilityId: 'facility-gamma',
+              name: 'Gamma Lab',
+              type: 'Lab',
+              location: 'East Wing',
+              status: facilityStatusUnavailable,
+            ),
+          ],
+          slotTemplates: [
+            _sampleSlotTemplate(
+              templateId: 'template-monday',
+              facilityId: 'facility-alpha',
+              weekday: DateTime.monday,
+              startMinutes: 600,
+              endMinutes: 660,
+            ),
+            _sampleSlotTemplate(
+              templateId: 'template-friday',
+              facilityId: 'facility-alpha',
+              weekday: DateTime.friday,
+              startMinutes: 540,
+              endMinutes: 600,
+              status: slotTemplateStatusInactive,
+            ),
+            _sampleSlotTemplate(
+              templateId: 'template-gamma',
+              facilityId: 'facility-gamma',
+              weekday: DateTime.tuesday,
+              startMinutes: 720,
+              endMinutes: 780,
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: StaffSlotManagementScreen(facilityBookingService: service),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('3 of 3'), findsOneWidget);
+        expect(
+          _staffSlotTop(tester, 'template-monday'),
+          lessThan(_staffSlotTop(tester, 'template-friday')),
+        );
+
+        final searchField = find.byKey(
+          const Key('staffSlotFacilitySearchField'),
+        );
+        await tester.tap(searchField);
+        await tester.pump();
+        await tester.enterText(searchField, 'g');
+        await tester.pump();
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+        expect(tester.testTextInput.isVisible, isTrue);
+        await tester.enterText(searchField, 'gamma');
+        await tester.pumpAndSettle();
+        expect(find.text('1 of 3'), findsOneWidget);
+        expect(
+          find.byKey(const Key('staffSlotTemplate_template-monday')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('staffSlotTemplate_template-friday')),
+          findsOneWidget,
+        );
+        expect(find.text('Alpha Room'), findsOneWidget);
+        expect(find.text('Room'), findsOneWidget);
+        expect(find.text('West Wing'), findsOneWidget);
+        expect(find.text('Capacity 40'), findsOneWidget);
+        expect(find.text('Available'), findsOneWidget);
+        expect(find.text('2 configured slots'), findsOneWidget);
+        expect(service.watchFacilitiesCallCount, 1);
+        expect(service.watchSlotTemplateCallCounts['facility-alpha'], 1);
+
+        await tester.tap(find.byKey(const Key('slotFacilityDropdown')));
+        await tester.pumpAndSettle();
+        expect(find.text('Alpha Room (Selected)'), findsWidgets);
+        expect(find.text('Gamma Lab'), findsOneWidget);
+        expect(find.text('Beta Hall'), findsNothing);
+        await tester.tap(find.text('Gamma Lab'));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const Key('staffSlotTemplate_template-gamma')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('staffSlotTemplate_template-monday')),
+          findsNothing,
+        );
+        expect(find.text('Gamma Lab'), findsOneWidget);
+        expect(find.text('Lab'), findsOneWidget);
+        expect(find.text('East Wing'), findsOneWidget);
+        expect(find.text('Capacity 40'), findsOneWidget);
+        expect(find.text('Unavailable'), findsOneWidget);
+        expect(find.text('1 configured slot'), findsOneWidget);
+        expect(service.watchSlotTemplateCallCounts['facility-gamma'], 1);
+
+        await tester.enterText(searchField, 'not found');
+        await tester.pumpAndSettle();
+        expect(find.text('No matching facilities'), findsOneWidget);
+        expect(find.text('No Slots'), findsNothing);
+        expect(
+          find.byKey(const Key('staffSlotTemplate_template-gamma')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('staffSlotSelectedFacilityDetail')),
+          findsOneWidget,
+        );
+        expect(find.text('Gamma Lab'), findsOneWidget);
+        expect(find.text('Unavailable'), findsOneWidget);
+        expect(find.text('1 configured slot'), findsOneWidget);
+
+        await tester.tap(
+          find.byKey(const Key('staffSlotFacilityClearFilters')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('3 of 3'), findsOneWidget);
+        expect(
+          find.byKey(const Key('staffSlotFacilitySortFilter')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const Key('staffSlotTemplate_template-gamma')),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.byKey(const Key('slotFacilityDropdown')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Alpha Room').last);
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const Key('staffSlotTemplate_template-monday')),
+          findsOneWidget,
+        );
+        expect(find.text('Alpha Room'), findsOneWidget);
+        expect(find.text('Available'), findsOneWidget);
+        expect(find.text('2 configured slots'), findsOneWidget);
+        expect(service.watchSlotTemplateCallCounts['facility-alpha'], 1);
+      },
+    );
+
+    testWidgets('staff slot facility filters and sorting narrow choices', (
+      tester,
+    ) async {
+      _useTallTestSurface(tester);
+      final service = _FakeFacilityBookingService(
+        facilities: [
+          _sampleFacility(
+            facilityId: 'facility-alpha',
+            name: 'Alpha Room',
+            type: 'Zeta Space',
+            location: 'Zeta Wing',
+          ),
+          _sampleFacility(
+            facilityId: 'facility-beta',
+            name: 'Beta Hall',
+            type: 'Hall',
+            location: 'North Block',
+          ),
+          _sampleFacility(
+            facilityId: 'facility-delta',
+            name: 'Delta Room',
+            type: 'Room',
+            location: 'West Wing',
+          ),
+          _sampleFacility(
+            facilityId: 'facility-gamma',
+            name: 'Gamma Lab',
+            type: 'Lab',
+            location: 'East Wing',
+            status: facilityStatusUnavailable,
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StaffSlotManagementScreen(facilityBookingService: service),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(_staffSlotFacilityChoices(tester), [
+        'Alpha Room (Selected)',
+        'Beta Hall',
+        'Delta Room',
+        'Gamma Lab',
+      ]);
+
+      await _expandStaffSlotFacilityFilters(tester);
+      await _selectStaffSlotFacilityFilter(
+        tester,
+        const Key('staffSlotFacilitySortFilter'),
+        'Type A-Z',
+      );
+      expect(_staffSlotFacilityChoices(tester), [
+        'Alpha Room (Selected)',
+        'Beta Hall',
+        'Gamma Lab',
+        'Delta Room',
+      ]);
+
+      await _selectStaffSlotFacilityFilter(
+        tester,
+        const Key('staffSlotFacilitySortFilter'),
+        'Location A-Z',
+      );
+      expect(_staffSlotFacilityChoices(tester), [
+        'Alpha Room (Selected)',
+        'Gamma Lab',
+        'Beta Hall',
+        'Delta Room',
+      ]);
+
+      await _selectStaffSlotFacilityFilter(
+        tester,
+        const Key('staffSlotFacilityTypeFilter_'),
+        'Lab',
+      );
+      expect(find.text('1 of 4'), findsOneWidget);
+      expect(_staffSlotFacilityChoices(tester), [
+        'Alpha Room (Selected)',
+        'Gamma Lab',
+      ]);
+
+      await _selectStaffSlotFacilityFilter(
+        tester,
+        const Key('staffSlotFacilityTypeFilter_Lab'),
+        'All types',
+      );
+      await _selectStaffSlotFacilityFilter(
+        tester,
+        const Key('staffSlotFacilityLocationFilter_'),
+        'East Wing',
+      );
+      expect(_staffSlotFacilityChoices(tester), [
+        'Alpha Room (Selected)',
+        'Gamma Lab',
+      ]);
+
+      await _selectStaffSlotFacilityFilter(
+        tester,
+        const Key('staffSlotFacilityLocationFilter_East Wing'),
+        'All locations',
+      );
+      await _selectStaffSlotFacilityFilter(
+        tester,
+        const Key('staffSlotFacilityStatusFilter'),
+        'Unavailable',
+      );
+      expect(_staffSlotFacilityChoices(tester), [
+        'Alpha Room (Selected)',
+        'Gamma Lab',
+      ]);
+
+      await tester.tap(find.byKey(const Key('staffSlotFacilityClearFilters')));
+      await tester.pumpAndSettle();
+      expect(_staffSlotFacilityChoices(tester), [
+        'Alpha Room (Selected)',
+        'Beta Hall',
+        'Delta Room',
+        'Gamma Lab',
+      ]);
+      expect(
+        find.byKey(const Key('staffSlotFacilitySortFilter')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('staff slot facility search matches type and location', (
+      tester,
+    ) async {
+      _useTallTestSurface(tester);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StaffSlotManagementScreen(
+            facilityBookingService: _FakeFacilityBookingService(
+              facilities: [
+                _sampleFacility(
+                  facilityId: 'facility-alpha',
+                  name: 'Alpha Room',
+                ),
+                _sampleFacility(
+                  facilityId: 'facility-gamma',
+                  name: 'Gamma Lab',
+                  type: 'Laboratory',
+                  location: 'East Wing',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final searchField = find.byKey(const Key('staffSlotFacilitySearchField'));
+      await tester.enterText(searchField, 'laboratory');
+      await tester.pumpAndSettle();
+      expect(_staffSlotFacilityChoices(tester), [
+        'Alpha Room (Selected)',
+        'Gamma Lab',
+      ]);
+
+      await tester.enterText(searchField, 'east wing');
+      await tester.pumpAndSettle();
+      expect(_staffSlotFacilityChoices(tester), [
+        'Alpha Room (Selected)',
+        'Gamma Lab',
+      ]);
+    });
+
+    testWidgets(
+      'staff slot management keeps selected facility no slots state',
+      (tester) async {
+        _useTallTestSurface(tester);
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: StaffSlotManagementScreen(
+              facilityBookingService: _FakeFacilityBookingService(
+                facilities: [_sampleFacility()],
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(find.text('No Slots'), findsOneWidget);
+        expect(find.text('No matching facilities'), findsNothing);
+        expect(
+          find.byKey(const Key('staffSlotSelectedFacilityDetail')),
+          findsOneWidget,
+        );
+        expect(find.text('0 configured slots'), findsOneWidget);
+        expect(
+          find.byKey(const Key('staffSlotFacilitySearchField')),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets('staff slot form shows mode-specific controls', (tester) async {
       await tester.pumpWidget(
@@ -878,17 +2511,93 @@ void main() {
   });
 }
 
+void _useTallTestSurface(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1000, 1400);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+}
+
+Future<void> _expandStaffBookingFilters(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('staffBookingFilterToggle')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _expandAdminFacilityFilters(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('adminFacilityFilterToggle')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _selectDropdownOption(
+  WidgetTester tester,
+  Key dropdownKey,
+  String option,
+) async {
+  await tester.tap(find.byKey(dropdownKey));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(option).last);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _expandStudentFacilityFilters(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('studentFacilityFilterToggle')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _expandStaffSlotFacilityFilters(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('staffSlotFacilityFilterToggle')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _selectStaffSlotFacilityFilter(
+  WidgetTester tester,
+  Key key,
+  String option,
+) async {
+  await tester.tap(find.byKey(key));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(option).last);
+  await tester.pumpAndSettle();
+}
+
+List<String> _staffSlotFacilityChoices(WidgetTester tester) {
+  final dropdown = tester.widget<DropdownButton<String>>(
+    find.descendant(
+      of: find.byKey(const Key('slotFacilityDropdown')),
+      matching: find.byWidgetPredicate(
+        (widget) => widget is DropdownButton<String>,
+      ),
+    ),
+  );
+  return dropdown.items!
+      .map((item) => (item.child as Text).data!)
+      .toList(growable: false);
+}
+
+double _staffSlotTop(WidgetTester tester, String templateId) {
+  return tester.getTopLeft(find.byKey(Key('staffSlotTemplate_$templateId'))).dy;
+}
+
+double _adminFacilityTop(WidgetTester tester, String facilityId) {
+  return tester.getTopLeft(find.byKey(Key('adminFacilityTile_$facilityId'))).dy;
+}
+
 Facility _sampleFacility({
   String facilityId = 'facility-1',
+  String name = 'Seminar Room A',
+  String type = 'Room',
+  String location = 'Library Level 2',
   String status = facilityStatusAvailable,
   int capacity = 40,
 }) {
   final now = DateTime(2026, 5, 25, 8);
   return Facility(
     facilityId: facilityId,
-    name: 'Seminar Room A',
-    type: 'Room',
-    location: 'Library Level 2',
+    name: name,
+    type: type,
+    location: location,
     capacity: capacity,
     status: status,
     createdAt: now,
@@ -899,43 +2608,57 @@ Facility _sampleFacility({
 FacilityBooking _sampleBooking({
   String bookingId = 'booking-1',
   String? slotOccurrenceId,
+  String facilityId = 'facility-1',
+  String facilityName = 'Seminar Room A',
+  String studentName = 'Aina Rahman',
+  String studentEmail = 'aina@example.com',
+  DateTime? requestedDate,
+  DateTime? startTime,
+  DateTime? endTime,
   String status = bookingStatusPending,
+  DateTime? createdAt,
 }) {
+  final savedRequestedDate = requestedDate ?? DateTime(2026, 5, 25);
+  final savedStartTime = startTime ?? DateTime(2026, 5, 25, 9);
+  final savedEndTime = endTime ?? DateTime(2026, 5, 25, 10);
+  final savedCreatedAt = createdAt ?? DateTime(2026, 5, 25, 8);
   return FacilityBooking(
     bookingId: bookingId,
     slotOccurrenceId: slotOccurrenceId ?? bookingId,
-    facilityId: 'facility-1',
+    facilityId: facilityId,
     templateId: 'template-1',
-    facilityName: 'Seminar Room A',
+    facilityName: facilityName,
     studentId: 'student-1',
-    studentName: 'Aina Rahman',
-    studentEmail: 'aina@example.com',
-    requestedDate: DateTime(2026, 5, 25),
-    startTime: DateTime(2026, 5, 25, 9),
-    endTime: DateTime(2026, 5, 25, 10),
+    studentName: studentName,
+    studentEmail: studentEmail,
+    requestedDate: savedRequestedDate,
+    startTime: savedStartTime,
+    endTime: savedEndTime,
     status: status,
     reviewedBy: status == bookingStatusPending ? null : 'staff-1',
     reviewedAt: status == bookingStatusPending
         ? null
         : DateTime(2026, 5, 25, 8, 30),
-    createdAt: DateTime(2026, 5, 25, 8),
-    updatedAt: DateTime(2026, 5, 25, 8),
+    createdAt: savedCreatedAt,
+    updatedAt: savedCreatedAt,
   );
 }
 
 FacilitySlotTemplate _sampleSlotTemplate({
   String templateId = 'template-1',
+  String facilityId = 'facility-1',
   String slotMode = slotModeWeekly,
   DateTime? slotDate,
   int? weekday = DateTime.monday,
   int startMinutes = 540,
   int endMinutes = 600,
   String status = slotTemplateStatusActive,
+  DateTime? updatedAt,
 }) {
   final now = DateTime(2026, 5, 25, 8);
   return FacilitySlotTemplate(
     templateId: templateId,
-    facilityId: 'facility-1',
+    facilityId: facilityId,
     slotMode: slotMode,
     slotDate: slotDate,
     weekday: weekday,
@@ -944,7 +2667,7 @@ FacilitySlotTemplate _sampleSlotTemplate({
     status: status,
     createdBy: 'staff-1',
     createdAt: now,
-    updatedAt: now,
+    updatedAt: updatedAt ?? now,
   );
 }
 
@@ -1029,9 +2752,15 @@ class _FakeFacilityBookingService implements FacilityBookingService {
   final approvedBookingIds = <String>[];
   final cancelledBookingIds = <String>[];
   final submittedSlotIds = <String>[];
+  int watchAvailableFacilitiesCallCount = 0;
+  int watchCurrentStudentBookingsCallCount = 0;
+  int watchBookingRequestsCallCount = 0;
+  int watchFacilitiesCallCount = 0;
+  final watchSlotTemplateCallCounts = <String, int>{};
 
   @override
   Stream<List<Facility>> watchAvailableFacilities() {
+    watchAvailableFacilitiesCallCount++;
     return Stream.value(
       facilities
           .where((facility) => facility.status == facilityStatusAvailable)
@@ -1041,16 +2770,19 @@ class _FakeFacilityBookingService implements FacilityBookingService {
 
   @override
   Stream<List<Facility>> watchFacilities() {
+    watchFacilitiesCallCount++;
     return Stream.value(facilities);
   }
 
   @override
   Stream<List<FacilityBooking>> watchCurrentStudentBookings() {
+    watchCurrentStudentBookingsCallCount++;
     return Stream.value(studentBookings);
   }
 
   @override
   Stream<List<FacilityBooking>> watchBookingRequests() {
+    watchBookingRequestsCallCount++;
     return Stream.value(reviewBookings);
   }
 
@@ -1058,6 +2790,8 @@ class _FakeFacilityBookingService implements FacilityBookingService {
   Stream<List<FacilitySlotTemplate>> watchSlotTemplatesForFacility(
     String facilityId,
   ) {
+    watchSlotTemplateCallCounts[facilityId] =
+        (watchSlotTemplateCallCounts[facilityId] ?? 0) + 1;
     return Stream.value(
       slotTemplates
           .where((template) => template.facilityId == facilityId)
@@ -1153,5 +2887,27 @@ class _FakeFacilityBookingService implements FacilityBookingService {
   @override
   Future<void> cancelBookingAsStaff(FacilityBooking booking) async {
     cancelledBookingIds.add(booking.bookingId);
+  }
+}
+
+class _FakeStaffBookingReviewPreferenceStore
+    implements StaffBookingReviewPreferenceStore {
+  _FakeStaffBookingReviewPreferenceStore({
+    StaffBookingReviewPreferences initialPreferences =
+        StaffBookingReviewPreferences.defaults,
+  }) : _preferences = initialPreferences;
+
+  StaffBookingReviewPreferences _preferences;
+  final savedPreferences = <StaffBookingReviewPreferences>[];
+
+  @override
+  Future<StaffBookingReviewPreferences> load() async {
+    return _preferences;
+  }
+
+  @override
+  Future<void> save(StaffBookingReviewPreferences preferences) async {
+    _preferences = preferences;
+    savedPreferences.add(preferences);
   }
 }

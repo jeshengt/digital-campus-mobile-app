@@ -46,6 +46,7 @@ dependencies:
   file_saver: ^0.4.0
   flutter_map: ^8.3.0
   latlong2: ^0.9.1
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:
@@ -71,7 +72,9 @@ flutter:
 
   assets:
     - assets/images/utmgologonobg.png
+    - assets/images/utmgologonobg_dark.png
     - assets/images/utmlogoheader.png
+    - assets/images/utmlogoheader_dark.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

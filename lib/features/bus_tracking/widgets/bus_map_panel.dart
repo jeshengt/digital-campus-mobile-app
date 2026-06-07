@@ -42,6 +42,9 @@ class BusMapPanel extends StatelessWidget {
       }
     }
     final selectedBus = selectedBusId == null ? null : busById[selectedBusId];
+    final visibleBusLocations = activeLocations
+        .where((location) => location.busId == selectedBusId)
+        .toList();
     final firstActiveLocation = activeLocations.isNotEmpty
         ? activeLocations.first
         : null;
@@ -52,25 +55,17 @@ class BusMapPanel extends StatelessWidget {
     );
     final featuredBus = selectedBus ?? (buses.isNotEmpty ? buses.first : null);
 
-    final polylines = <Polyline<Object>>[];
-    for (final bus in buses) {
-      if (!bus.hasRouteGeometry) {
-        continue;
-      }
-
-      polylines.add(
+    final polylines = <Polyline<Object>>[
+      if (selectedBus != null && selectedBus.hasRouteGeometry)
         Polyline(
           points: [
-            for (final point in bus.routePoints)
+            for (final point in selectedBus.routePoints)
               LatLng(point.latitude, point.longitude),
           ],
-          color: bus.busId == selectedBusId
-              ? colors.brandMaroon
-              : colors.brandGold,
-          strokeWidth: bus.busId == selectedBusId ? 5 : 3,
+          color: colors.brandMaroon,
+          strokeWidth: 5,
         ),
-      );
-    }
+    ];
 
     return Semantics(
       label: 'OpenStreetMap live bus map',
@@ -102,7 +97,7 @@ class BusMapPanel extends StatelessWidget {
                   if (polylines.isNotEmpty) PolylineLayer(polylines: polylines),
                   MarkerLayer(
                     markers: [
-                      for (final location in activeLocations)
+                      for (final location in visibleBusLocations)
                         Marker(
                           point: LatLng(location.latitude, location.longitude),
                           width: 54,

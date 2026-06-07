@@ -9,7 +9,7 @@
         tools:replace="android:maxSdkVersion" />
 
     <application
-        android:label="utmgo"
+        android:label="UTM Go"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:requestLegacyExternalStorage="true">

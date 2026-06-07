@@ -51,6 +51,10 @@ Users may later edit safe profile fields only: `name`, `matricNumber`, and `staf
 
 `facilitySlotReservations/{bookingId}` stores the active per-booking reservation for a submitted slot, including the shared `slotOccurrenceId`. `facilitySlotCapacity/{slotOccurrenceId}` stores the per-slot counter with pending, approved, and active counts. The app writes shared booking, student-owned booking, reservation, and capacity counter updates in a Firestore transaction. Pending and approved requests both hold capacity; student pending cancellation and staff cancellation release capacity, while staff approval moves one held seat from pending to approved.
 
+## Notifications Module Shape
+
+`notifications/{notificationId}` stores student-visible in-app updates for facility booking staff decisions. Facility booking approval and staff cancellation create one notification in the same Firestore transaction as the booking status update, using `type` `facilityBookingStatus`, the target `userId`, booking and facility metadata, status, unread state, and creation time. Students stream only their own notifications, can mark `isRead` true, and see app-open alerts while UTM Go is running. This module does not use FCM sending, Cloud Functions, paid backend execution, or paid notification APIs.
+
 ## Security Rules Reminder
 
 Security Rules must be added before real Firestore data is used. Rules must enforce authenticated access, profile ownership, role-based permissions, admin-only role management, lecturer ownership of attendance sessions, student ownership of attendance records and bookings, staff booking review permissions, and driver-only bus location updates.

@@ -11,6 +11,7 @@ import '../models/facility_slot_occurrence.dart';
 import '../models/facility_slot_reservation.dart';
 import '../models/facility_slot_template.dart';
 import '../utils/booking_validation.dart';
+import '../../notifications/utils/facility_booking_notification_builder.dart';
 
 abstract class FacilityBookingService {
   Stream<List<Facility>> watchAvailableFacilities();
@@ -81,6 +82,9 @@ class FirebaseFacilityBookingService implements FacilityBookingService {
 
   CollectionReference<Map<String, dynamic>> get _bookings =>
       _firestore.collection(FirebaseCollections.bookings);
+
+  CollectionReference<Map<String, dynamic>> get _notifications =>
+      _firestore.collection(FirebaseCollections.notifications);
 
   CollectionReference<Map<String, dynamic>> get _reservations =>
       _firestore.collection('facilitySlotReservations');
@@ -420,6 +424,14 @@ class FirebaseFacilityBookingService implements FacilityBookingService {
     }
 
     final now = DateTime.now();
+    final notificationDoc = _notifications.doc();
+    final notification = buildFacilityBookingStatusNotification(
+      notificationId: notificationDoc.id,
+      booking: booking,
+      status: status,
+      createdAt: now,
+    );
+
     try {
       await _firestore.runTransaction((transaction) async {
         final facilityDoc = _facilities.doc(booking.facilityId);
@@ -467,6 +479,7 @@ class FirebaseFacilityBookingService implements FacilityBookingService {
           'status': status,
           'updatedAt': now,
         });
+        transaction.set(notificationDoc, notification.toMap());
       });
     } on StateError catch (error) {
       if (error.message == 'capacity-full') {
@@ -482,6 +495,16 @@ class FirebaseFacilityBookingService implements FacilityBookingService {
     String? reviewerId,
   }) async {
     final now = DateTime.now();
+    final notificationDoc = reviewerId == null ? null : _notifications.doc();
+    final notification = notificationDoc == null
+        ? null
+        : buildFacilityBookingStatusNotification(
+            notificationId: notificationDoc.id,
+            booking: booking,
+            status: bookingStatusCancelled,
+            createdAt: now,
+          );
+
     await _firestore.runTransaction((transaction) async {
       final capacityDoc = _slotCapacityDoc(booking.slotOccurrenceId);
       final reservationDoc = _reservations.doc(booking.bookingId);
@@ -528,6 +551,9 @@ class FirebaseFacilityBookingService implements FacilityBookingService {
       if (legacyReservationSnapshot != null &&
           legacyReservationSnapshot.exists) {
         transaction.delete(legacyReservationDoc);
+      }
+      if (notificationDoc != null && notification != null) {
+        transaction.set(notificationDoc, notification.toMap());
       }
     });
   }

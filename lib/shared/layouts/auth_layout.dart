@@ -57,6 +57,7 @@ class _AuthPanel extends StatelessWidget {
   });
 
   static const _logoAsset = 'assets/images/utmgologonobg.png';
+  static const _darkLogoAsset = 'assets/images/utmgologonobg_dark.png';
 
   final String title;
   final String subtitle;
@@ -65,6 +66,8 @@ class _AuthPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = UtmThemeColors.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final logoAsset = isDark ? _darkLogoAsset : _logoAsset;
 
     return Semantics(
       container: true,
@@ -84,7 +87,7 @@ class _AuthPanel extends StatelessWidget {
                 width: 280,
                 height: 96,
                 child: Image.asset(
-                  _logoAsset,
+                  logoAsset,
                   fit: BoxFit.contain,
                   filterQuality: FilterQuality.high,
                 ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../app/routes/app_routes.dart';
 import '../../app/theme/app_theme.dart';
+import '../../features/notifications/widgets/notification_bell.dart';
 
 class UtmMinimalHeader extends StatelessWidget {
   const UtmMinimalHeader({
@@ -11,12 +12,16 @@ class UtmMinimalHeader extends StatelessWidget {
   });
 
   static const logoAsset = 'assets/images/utmlogoheader.png';
+  static const darkLogoAsset = 'assets/images/utmlogoheader_dark.png';
 
   final String? semanticLabel;
   final bool showProfileAction;
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final effectiveLogoAsset = isDark ? darkLogoAsset : logoAsset;
+
     final header = SizedBox(
       height: 58,
       child: Row(
@@ -28,13 +33,15 @@ class UtmMinimalHeader extends StatelessWidget {
               width: 118,
               height: 46,
               child: Image.asset(
-                logoAsset,
+                effectiveLogoAsset,
                 fit: BoxFit.contain,
                 filterQuality: FilterQuality.high,
               ),
             ),
           ),
           const Spacer(),
+          if (showProfileAction) const NotificationBell(),
+          if (showProfileAction) const SizedBox(width: 8),
           if (showProfileAction) const _ProfileActionButton(),
         ],
       ),

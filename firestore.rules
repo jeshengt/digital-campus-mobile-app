@@ -339,6 +339,10 @@ service cloud.firestore {
       return /databases/$(database)/documents/facilities/$(facilityId);
     }
 
+    function userFacilityBookingPath(uid, bookingId) {
+      return /databases/$(database)/documents/users/$(uid)/facilityBookings/$(bookingId);
+    }
+
     function slotTemplatePath(facilityId, templateId) {
       return /databases/$(database)/documents/facilities/$(facilityId)/slotTemplates/$(templateId);
     }
@@ -428,6 +432,54 @@ service cloud.firestore {
             && request.resource.data.status == 'cancelled'
           )
         );
+    }
+
+    function notificationKeysAreSafe() {
+      return request.resource.data.keys().hasOnly([
+        'notificationId',
+        'userId',
+        'title',
+        'message',
+        'type',
+        'bookingId',
+        'facilityId',
+        'facilityName',
+        'status',
+        'isRead',
+        'createdAt'
+      ]);
+    }
+
+    function notificationValuesAreSafe(notificationId) {
+      return notificationKeysAreSafe()
+        && request.resource.data.notificationId == notificationId
+        && request.resource.data.userId is string
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0
+        && request.resource.data.message is string
+        && request.resource.data.message.size() > 0
+        && request.resource.data.type == 'facilityBookingStatus'
+        && request.resource.data.bookingId is string
+        && request.resource.data.facilityId is string
+        && request.resource.data.facilityName is string
+        && request.resource.data.facilityName.size() > 0
+        && request.resource.data.status in ['approved', 'cancelled']
+        && request.resource.data.isRead == false
+        && request.resource.data.createdAt is timestamp;
+    }
+
+    function staffNotificationCreateIsSafe(notificationId) {
+      let bookingAfter = getAfter(userFacilityBookingPath(
+        request.resource.data.userId,
+        request.resource.data.bookingId
+      ));
+      return isStaff()
+        && notificationValuesAreSafe(notificationId)
+        && bookingAfter.data.status == request.resource.data.status
+        && bookingAfter.data.studentId == request.resource.data.userId
+        && bookingAfter.data.bookingId == request.resource.data.bookingId
+        && bookingAfter.data.facilityId == request.resource.data.facilityId
+        && bookingAfter.data.facilityName == request.resource.data.facilityName;
     }
 
     function slotTemplateKeysAreSafe() {
@@ -868,13 +920,17 @@ service cloud.firestore {
     match /notifications/{notificationId} {
       allow get: if isAdmin()
         || (signedIn() && resource.data.userId == request.auth.uid);
-      allow list: if isAdmin();
-      allow create, delete: if isAdmin();
+      allow list: if isAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid);
+      allow create: if isAdmin()
+        || staffNotificationCreateIsSafe(notificationId);
+      allow delete: if isAdmin();
       allow update: if isAdmin()
         || (
           signedIn()
           && resource.data.userId == request.auth.uid
           && request.resource.data.diff(resource.data).changedKeys().hasOnly(['isRead'])
+          && request.resource.data.isRead == true
         );
     }
 

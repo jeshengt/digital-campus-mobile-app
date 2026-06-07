@@ -11,6 +11,7 @@ import 'package:utmgo/models/user_role.dart';
 import 'package:utmgo/shared/layouts/auth_layout.dart';
 import 'package:utmgo/shared/widgets/utm_feature_header.dart';
 import 'package:utmgo/shared/widgets/utm_info_card.dart';
+import 'package:utmgo/shared/widgets/utm_minimal_header.dart';
 import 'package:utmgo/shared/widgets/utm_primary_button.dart';
 import 'package:utmgo/shared/widgets/utm_text_field.dart';
 
@@ -74,6 +75,58 @@ void main() {
 
     expect(find.text('Welcome'), findsOneWidget);
     expect(find.text('Sign in'), findsOneWidget);
+    expect(_logoAssetName(tester), 'assets/images/utmgologonobg_dark.png');
+  });
+
+  testWidgets('auth layout uses the light logo in light mode', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: ThemeMode.light,
+        home: AuthLayout(
+          title: 'Welcome',
+          subtitle: 'Your campus experience continues here.',
+          child: UtmPrimaryButton(
+            label: 'Sign in',
+            icon: Icons.login_rounded,
+            onPressed: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(_logoAssetName(tester), 'assets/images/utmgologonobg.png');
+  });
+
+  testWidgets('minimal header switches logos between light and dark themes', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        key: const ValueKey('minimal-header-light'),
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: ThemeMode.light,
+        home: const Scaffold(body: UtmMinimalHeader(showProfileAction: false)),
+      ),
+    );
+
+    expect(_logoAssetName(tester), UtmMinimalHeader.logoAsset);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        key: const ValueKey('minimal-header-dark'),
+        theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        themeMode: ThemeMode.dark,
+        home: const Scaffold(body: UtmMinimalHeader(showProfileAction: false)),
+      ),
+    );
+
+    expect(_logoAssetName(tester), UtmMinimalHeader.darkLogoAsset);
   });
 
   testWidgets('student dashboard uses the scan-first glass layout', (
@@ -98,6 +151,14 @@ void main() {
     expect(find.text('Book a Facility'), findsOneWidget);
     expect(find.text('Classes'), findsNothing);
   });
+}
+
+String _logoAssetName(WidgetTester tester) {
+  final image = tester.widget<Image>(find.byType(Image).first);
+  final provider = image.image;
+
+  expect(provider, isA<AssetImage>());
+  return (provider as AssetImage).assetName;
 }
 
 class _SharedDesignSmokeSurface extends StatelessWidget {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:utmgo/app/routes/app_routes.dart';
 import 'package:utmgo/app/theme/app_theme.dart';
@@ -331,6 +332,78 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Engineering Shuttle - Offline'), findsOneWidget);
+    });
+
+    testWidgets('bus map draws only the selected route line', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: BusTrackingMapScreen(
+            busTrackingService: _FakeBusTrackingService(
+              buses: [_sampleBus(), _sampleSecondBus()],
+              locations: [_sampleLocation()],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      var routeLayer = _busRoutePolylineLayer(tester);
+      expect(routeLayer.polylines, hasLength(1));
+      expect(
+        routeLayer.polylines.single.points.first.latitude,
+        _sampleBus().routePoints.first.latitude,
+      );
+
+      await tester.tap(find.byKey(const Key('busRouteDropdown')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Engineering Shuttle - Offline').last);
+      await tester.pumpAndSettle();
+
+      routeLayer = _busRoutePolylineLayer(tester);
+      expect(routeLayer.polylines, hasLength(1));
+      expect(
+        routeLayer.polylines.single.points.first.latitude,
+        _sampleSecondBus().routePoints.first.latitude,
+      );
+    });
+
+    testWidgets('bus map draws only the selected live bus marker', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: BusTrackingMapScreen(
+            busTrackingService: _FakeBusTrackingService(
+              buses: [_sampleBus(), _sampleSecondBus()],
+              locations: [_sampleLocation(), _sampleSecondLocation()],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      var markerLayer = _busMarkerLayer(tester);
+      expect(markerLayer.markers, hasLength(1));
+      expect(
+        markerLayer.markers.single.point.latitude,
+        _sampleLocation().latitude,
+      );
+
+      await tester.tap(find.byKey(const Key('busRouteDropdown')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Engineering Shuttle - Live').last);
+      await tester.pumpAndSettle();
+
+      markerLayer = _busMarkerLayer(tester);
+      expect(markerLayer.markers, hasLength(1));
+      expect(
+        markerLayer.markers.single.point.latitude,
+        _sampleSecondLocation().latitude,
+      );
     });
 
     testWidgets('bus map can show user current location', (tester) async {
@@ -698,6 +771,20 @@ void main() {
   });
 }
 
+PolylineLayer<Object> _busRoutePolylineLayer(WidgetTester tester) {
+  final finder = find.byWidgetPredicate(
+    (widget) => widget is PolylineLayer<Object>,
+  );
+  expect(finder, findsOneWidget);
+  return tester.widget<PolylineLayer<Object>>(finder);
+}
+
+MarkerLayer _busMarkerLayer(WidgetTester tester) {
+  final finder = find.byWidgetPredicate((widget) => widget is MarkerLayer);
+  expect(finder, findsOneWidget);
+  return tester.widget<MarkerLayer>(finder);
+}
+
 Future<void> _tapAdminRouteMap(WidgetTester tester) async {
   final mapFinder = find.byKey(const Key('adminBusRouteMap'));
   await tester.ensureVisible(mapFinder);
@@ -746,6 +833,19 @@ BusLocation _sampleLocation() {
     heading: 90,
     isBroadcasting: true,
     updatedAt: DateTime(2026, 5, 24, 14, 30),
+  );
+}
+
+BusLocation _sampleSecondLocation() {
+  return BusLocation(
+    busId: 'bus-2',
+    driverId: 'driver-2',
+    latitude: 1.5612,
+    longitude: 103.6411,
+    speed: 4,
+    heading: 120,
+    isBroadcasting: true,
+    updatedAt: DateTime(2026, 5, 24, 14, 31),
   );
 }
 

@@ -585,6 +585,108 @@ void main() {
       expect(find.byTooltip('View QR'), findsNothing);
     });
 
+    testWidgets('lecturer session list filters sorts and keeps search focus', (
+      tester,
+    ) async {
+      _useTallAttendanceTestSurface(tester);
+      final now = DateTime.now();
+      final service = _FakeAttendanceService(
+        sessions: [
+          _sampleSession(
+            sessionId: 'session-gamma',
+            courseCode: 'GAMMA300',
+            createdAt: now.subtract(const Duration(days: 2)),
+          ),
+          _sampleSession(
+            sessionId: 'session-alpha',
+            courseCode: 'ALPHA100',
+            createdAt: now,
+          ),
+          _sampleSession(
+            sessionId: 'session-beta',
+            courseCode: 'BETA200',
+            status: attendanceStatusClosed,
+            createdAt: now.subtract(const Duration(days: 1)),
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: LecturerAttendanceListScreen(attendanceService: service),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('lecturerSessionSearchField')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('lecturerSessionSortFilter')), findsNothing);
+      expect(find.text('3 of 3 sessions'), findsOneWidget);
+      expect(
+        _lecturerSessionTop(tester, 'session-alpha'),
+        lessThan(_lecturerSessionTop(tester, 'session-beta')),
+      );
+
+      final searchField = find.byKey(const Key('lecturerSessionSearchField'));
+      await tester.tap(searchField);
+      await tester.pump();
+      await tester.enterText(searchField, 'b');
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(tester.testTextInput.isVisible, isTrue);
+      await tester.enterText(searchField, 'beta');
+      await tester.pumpAndSettle();
+      expect(find.text('BETA200'), findsOneWidget);
+      expect(find.text('ALPHA100'), findsNothing);
+      expect(service.watchLecturerSessionsCallCount, 1);
+
+      await tester.tap(find.byKey(const Key('lecturerSessionClearFilters')));
+      await tester.pumpAndSettle();
+      await _expandLecturerSessionFilters(tester);
+      await tester.tap(find.byKey(const Key('lecturerSessionStatus_inactive')));
+      await tester.pumpAndSettle();
+      expect(find.text('BETA200'), findsOneWidget);
+      expect(find.text('ALPHA100'), findsNothing);
+
+      await tester.tap(find.byKey(const Key('lecturerSessionClearFilters')));
+      await tester.pumpAndSettle();
+      await _expandLecturerSessionFilters(tester);
+      await tester.tap(find.text('Newest first'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Oldest first').last);
+      await tester.pumpAndSettle();
+      expect(
+        _lecturerSessionTop(tester, 'session-gamma'),
+        lessThan(_lecturerSessionTop(tester, 'session-beta')),
+      );
+      await tester.tap(find.text('Oldest first'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Course A-Z').last);
+      await tester.pumpAndSettle();
+      expect(
+        _lecturerSessionTop(tester, 'session-alpha'),
+        lessThan(_lecturerSessionTop(tester, 'session-beta')),
+      );
+      expect(
+        _lecturerSessionTop(tester, 'session-beta'),
+        lessThan(_lecturerSessionTop(tester, 'session-gamma')),
+      );
+
+      await tester.tap(find.byKey(const Key('lecturerSessionFromDateButton')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      expect(find.text('ALPHA100'), findsOneWidget);
+      expect(find.text('BETA200'), findsNothing);
+
+      await tester.enterText(searchField, 'missing');
+      await tester.pumpAndSettle();
+      expect(find.text('No matching sessions'), findsOneWidget);
+      expect(find.text('No sessions yet'), findsNothing);
+    });
+
     testWidgets('lecturer attendance list shows records for a session', (
       tester,
     ) async {
@@ -614,6 +716,99 @@ void main() {
       expect(find.text('Aina Rahman'), findsOneWidget);
       expect(find.text('Save as PDF'), findsOneWidget);
       expect(find.text('Share as PDF'), findsOneWidget);
+    });
+
+    testWidgets('lecturer record list searches sorts and exports all records', (
+      tester,
+    ) async {
+      _useTallAttendanceTestSurface(tester);
+      final session = _sampleSession();
+      final now = DateTime.now();
+      final service = _FakeAttendanceService(
+        session: session,
+        records: [
+          _sampleRecord(
+            session,
+            recordId: 'record-daniel',
+            studentName: 'Daniel Tan',
+            studentEmail: 'daniel@example.com',
+            scannedAt: now.subtract(const Duration(minutes: 2)),
+          ),
+          _sampleRecord(
+            session,
+            recordId: 'record-aina',
+            studentName: 'Aina Rahman',
+            studentEmail: 'aina@example.com',
+            scannedAt: now,
+          ),
+        ],
+      );
+      final pdfExportService = _FakePdfExportService();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          onGenerateRoute: (_) => MaterialPageRoute<void>(
+            settings: RouteSettings(arguments: session),
+            builder: (_) => LecturerAttendanceListScreen(
+              attendanceService: service,
+              pdfExportService: pdfExportService,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('lecturerRecordSearchField')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('lecturerRecordSortFilter')), findsNothing);
+      expect(
+        _lecturerRecordTop(tester, 'record-aina'),
+        lessThan(_lecturerRecordTop(tester, 'record-daniel')),
+      );
+
+      final searchField = find.byKey(const Key('lecturerRecordSearchField'));
+      await tester.tap(searchField);
+      await tester.pump();
+      await tester.enterText(searchField, 'd');
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(tester.testTextInput.isVisible, isTrue);
+      await tester.enterText(searchField, 'daniel@example.com');
+      await tester.pumpAndSettle();
+      expect(find.text('Daniel Tan'), findsOneWidget);
+      expect(find.text('Aina Rahman'), findsNothing);
+      expect(service.watchRecordsForSessionCallCount, 1);
+
+      await tester.tap(find.text('Share as PDF'));
+      await tester.pumpAndSettle();
+      expect(pdfExportService.sharedRecordCount, 2);
+
+      await tester.tap(find.byKey(const Key('lecturerRecordClearFilters')));
+      await tester.pumpAndSettle();
+      await _expandLecturerRecordFilters(tester);
+      await tester.tap(find.text('Newest scan'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Oldest scan').last);
+      await tester.pumpAndSettle();
+      expect(
+        _lecturerRecordTop(tester, 'record-daniel'),
+        lessThan(_lecturerRecordTop(tester, 'record-aina')),
+      );
+      await tester.tap(find.text('Oldest scan'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Student A-Z').last);
+      await tester.pumpAndSettle();
+      expect(
+        _lecturerRecordTop(tester, 'record-aina'),
+        lessThan(_lecturerRecordTop(tester, 'record-daniel')),
+      );
+
+      await tester.enterText(searchField, 'missing');
+      await tester.pumpAndSettle();
+      expect(find.text('No matching students'), findsOneWidget);
+      expect(find.text('No students yet'), findsNothing);
     });
 
     testWidgets('lecturer attendance list shares records as PDF', (
@@ -833,26 +1028,353 @@ void main() {
       expect(find.text('1 verified record'), findsOneWidget);
       expect(find.text('SECJ1013'), findsOneWidget);
     });
+
+    testWidgets(
+      'student attendance filters start collapsed with search visible',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: StudentAttendanceHistoryScreen(
+              attendanceService: _FakeAttendanceService(
+                records: [_sampleRecord(_sampleSession())],
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('studentAttendanceSearchField')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('studentAttendanceFilterToggle')),
+          findsOneWidget,
+        );
+        expect(find.text('1 of 1 records'), findsOneWidget);
+        expect(
+          find.byKey(const Key('studentAttendanceFromDateButton')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const Key('studentAttendanceSortFilter')),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets('student attendance search matches course case-insensitively', (
+      tester,
+    ) async {
+      final session = _sampleSession();
+      final service = _FakeAttendanceService(
+        records: [
+          _sampleRecord(session, recordId: 'record-1', courseCode: 'SECJ1013'),
+          _sampleRecord(session, recordId: 'record-2', courseCode: 'UHLB2122'),
+        ],
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StudentAttendanceHistoryScreen(attendanceService: service),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      final searchField = find.byKey(const Key('studentAttendanceSearchField'));
+      await tester.tap(searchField);
+      await tester.pump();
+      await tester.enterText(searchField, 'u');
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(tester.testTextInput.isVisible, isTrue);
+      await tester.enterText(searchField, 'uhlb');
+      await tester.pumpAndSettle();
+
+      expect(find.text('UHLB2122'), findsOneWidget);
+      expect(find.text('SECJ1013'), findsNothing);
+      expect(find.text('1 of 2 records'), findsOneWidget);
+      expect(tester.testTextInput.isVisible, isTrue);
+      expect(service.watchCurrentStudentRecordsCallCount, 1);
+    });
+
+    testWidgets(
+      'student attendance date range filters inclusively and corrects',
+      (tester) async {
+        final session = _sampleSession();
+        final today = DateTime.now();
+        final yesterday = today.subtract(const Duration(days: 1));
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: AppTheme.light,
+            home: StudentAttendanceHistoryScreen(
+              attendanceService: _FakeAttendanceService(
+                records: [
+                  _sampleRecord(
+                    session,
+                    recordId: 'record-today',
+                    courseCode: 'TODAY100',
+                    scannedAt: DateTime(today.year, today.month, today.day, 9),
+                  ),
+                  _sampleRecord(
+                    session,
+                    recordId: 'record-yesterday',
+                    courseCode: 'PAST100',
+                    scannedAt: DateTime(
+                      yesterday.year,
+                      yesterday.month,
+                      yesterday.day,
+                      9,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        await _expandStudentAttendanceFilters(tester);
+        await tester.tap(
+          find.byKey(const Key('studentAttendanceFromDateButton')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('OK'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('TODAY100'), findsOneWidget);
+        expect(find.text('PAST100'), findsNothing);
+        expect(find.text('1 of 2 records'), findsOneWidget);
+
+        await tester.tap(
+          find.byKey(const Key('studentAttendanceToDateButton')),
+        );
+        await tester.pumpAndSettle();
+        await _selectDateFromOpenPicker(tester, yesterday);
+
+        final dateLabel = _formatTestDate(yesterday);
+        expect(find.text('From: $dateLabel'), findsOneWidget);
+        expect(find.text('To: $dateLabel'), findsOneWidget);
+        expect(find.text('PAST100'), findsOneWidget);
+        expect(find.text('TODAY100'), findsNothing);
+      },
+    );
+
+    testWidgets('student attendance sort applies after filtering and clears', (
+      tester,
+    ) async {
+      _useTallAttendanceTestSurface(tester);
+      final session = _sampleSession();
+      final now = DateTime.now();
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StudentAttendanceHistoryScreen(
+            attendanceService: _FakeAttendanceService(
+              records: [
+                _sampleRecord(
+                  session,
+                  recordId: 'record-beta',
+                  courseCode: 'BETA200',
+                  scannedAt: now.subtract(const Duration(days: 2)),
+                ),
+                _sampleRecord(
+                  session,
+                  recordId: 'record-alpha-new',
+                  courseCode: 'ALPHA200',
+                  scannedAt: now,
+                ),
+                _sampleRecord(
+                  session,
+                  recordId: 'record-alpha-old',
+                  courseCode: 'ALPHA100',
+                  scannedAt: now.subtract(const Duration(days: 1)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(
+        _attendanceRecordTop(tester, 'record-alpha-new'),
+        lessThan(_attendanceRecordTop(tester, 'record-alpha-old')),
+      );
+      expect(
+        _attendanceRecordTop(tester, 'record-alpha-old'),
+        lessThan(_attendanceRecordTop(tester, 'record-beta')),
+      );
+
+      await _expandStudentAttendanceFilters(tester);
+      await tester.tap(find.text('Newest first'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Oldest first').last);
+      await tester.pumpAndSettle();
+      expect(
+        _attendanceRecordTop(tester, 'record-beta'),
+        lessThan(_attendanceRecordTop(tester, 'record-alpha-old')),
+      );
+
+      await tester.tap(find.text('Oldest first'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Course A-Z').last);
+      await tester.pumpAndSettle();
+      expect(
+        _attendanceRecordTop(tester, 'record-alpha-old'),
+        lessThan(_attendanceRecordTop(tester, 'record-alpha-new')),
+      );
+      expect(
+        _attendanceRecordTop(tester, 'record-alpha-new'),
+        lessThan(_attendanceRecordTop(tester, 'record-beta')),
+      );
+
+      await tester.enterText(
+        find.byKey(const Key('studentAttendanceSearchField')),
+        'alpha',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('BETA200'), findsNothing);
+      expect(
+        _attendanceRecordTop(tester, 'record-alpha-old'),
+        lessThan(_attendanceRecordTop(tester, 'record-alpha-new')),
+      );
+
+      await tester.tap(find.byKey(const Key('studentAttendanceClearFilters')));
+      await tester.pumpAndSettle();
+      expect(find.text('BETA200'), findsOneWidget);
+      expect(
+        find.byKey(const Key('studentAttendanceSortFilter')),
+        findsNothing,
+      );
+      expect(
+        _attendanceRecordTop(tester, 'record-alpha-new'),
+        lessThan(_attendanceRecordTop(tester, 'record-alpha-old')),
+      );
+    });
+
+    testWidgets('student attendance filtered empty differs from true empty', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StudentAttendanceHistoryScreen(
+            attendanceService: _FakeAttendanceService(
+              records: [_sampleRecord(_sampleSession())],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('studentAttendanceSearchField')),
+        'not found',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('No matching attendance'), findsOneWidget);
+      expect(find.text('No attendance yet'), findsNothing);
+      expect(
+        find.byKey(const Key('studentAttendanceClearFilteredEmpty')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('studentAttendanceClearFilters')),
+        findsNothing,
+      );
+    });
   });
 }
 
+void _useTallAttendanceTestSurface(WidgetTester tester) {
+  tester.view.physicalSize = const Size(1000, 1600);
+  tester.view.devicePixelRatio = 1;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+}
+
+Future<void> _expandStudentAttendanceFilters(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('studentAttendanceFilterToggle')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _expandLecturerSessionFilters(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('lecturerSessionFilterToggle')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _expandLecturerRecordFilters(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('lecturerRecordFilterToggle')));
+  await tester.pumpAndSettle();
+}
+
+double _lecturerSessionTop(WidgetTester tester, String sessionId) {
+  return tester.getTopLeft(find.byKey(Key('lecturerSession_$sessionId'))).dy;
+}
+
+double _lecturerRecordTop(WidgetTester tester, String recordId) {
+  return tester.getTopLeft(find.byKey(Key('lecturerRecord_$recordId'))).dy;
+}
+
+Future<void> _selectDateFromOpenPicker(
+  WidgetTester tester,
+  DateTime date,
+) async {
+  final now = DateTime.now();
+  final monthDelta = (date.year - now.year) * 12 + date.month - now.month;
+  final navigationIcon = monthDelta < 0
+      ? Icons.chevron_left
+      : Icons.chevron_right;
+  for (var index = 0; index < monthDelta.abs(); index++) {
+    await tester.tap(find.byIcon(navigationIcon).last);
+    await tester.pumpAndSettle();
+  }
+
+  await tester.tap(find.text('${date.day}').last);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('OK'));
+  await tester.pumpAndSettle();
+}
+
+double _attendanceRecordTop(WidgetTester tester, String recordId) {
+  return tester
+      .getTopLeft(find.byKey(Key('studentAttendanceRecord_$recordId')))
+      .dy;
+}
+
+String _formatTestDate(DateTime value) {
+  final day = value.day.toString().padLeft(2, '0');
+  final month = value.month.toString().padLeft(2, '0');
+  return '$day/$month/${value.year}';
+}
+
 AttendanceSession _sampleSession({
+  String sessionId = 'session-1',
+  String courseCode = 'SECJ1013',
   double radius = 100,
   bool isExpired = false,
   bool requiresLocation = true,
   DateTime? expiryTime,
   bool noExpiry = false,
+  String status = attendanceStatusActive,
+  DateTime? createdAt,
 }) {
   final now = DateTime.now();
   return AttendanceSession(
-    sessionId: 'session-1',
+    sessionId: sessionId,
     lecturerId: 'lecturer-1',
-    courseCode: 'SECJ1013',
+    courseCode: courseCode,
     requiresLocation: requiresLocation,
     latitude: requiresLocation ? 1.5583 : null,
     longitude: requiresLocation ? 103.6371 : null,
     geofenceRadius: requiresLocation ? radius : null,
-    qrCodeValue: 'utmgo-att:session-1:1:abcd',
+    qrCodeValue: 'utmgo-att:$sessionId:1:abcd',
     startTime: now,
     expiryTime: noExpiry
         ? null
@@ -860,23 +1382,32 @@ AttendanceSession _sampleSession({
               (isExpired
                   ? now.subtract(const Duration(minutes: 1))
                   : now.add(const Duration(minutes: 15))),
-    status: attendanceStatusActive,
-    createdAt: now,
+    status: status,
+    createdAt: createdAt ?? now,
   );
 }
 
-AttendanceRecord _sampleRecord(AttendanceSession session) {
+AttendanceRecord _sampleRecord(
+  AttendanceSession session, {
+  String? recordId,
+  String? courseCode,
+  String studentName = 'Aina Rahman',
+  String studentEmail = 'aina@example.com',
+  DateTime? scannedAt,
+}) {
   return AttendanceRecord(
-    recordId: attendanceRecordId(
-      sessionId: session.sessionId,
-      studentId: 'student-1',
-    ),
+    recordId:
+        recordId ??
+        attendanceRecordId(
+          sessionId: session.sessionId,
+          studentId: 'student-1',
+        ),
     sessionId: session.sessionId,
-    courseCode: session.courseCode,
+    courseCode: courseCode ?? session.courseCode,
     studentId: 'student-1',
-    studentName: 'Aina Rahman',
-    studentEmail: 'aina@example.com',
-    scannedAt: DateTime.now(),
+    studentName: studentName,
+    studentEmail: studentEmail,
+    scannedAt: scannedAt ?? DateTime.now(),
     locationValidated: session.requiresLocation,
     latitude: session.requiresLocation ? 1.5583 : null,
     longitude: session.requiresLocation ? 103.6371 : null,
@@ -891,14 +1422,19 @@ AttendanceRecord _sampleRecord(AttendanceSession session) {
 class _FakeAttendanceService implements AttendanceService {
   _FakeAttendanceService({
     this.session,
+    List<AttendanceSession>? sessions,
     this.records = const <AttendanceRecord>[],
-  });
+  }) : sessions = sessions ?? (session == null ? [] : [session]);
 
   final AttendanceSession? session;
+  final List<AttendanceSession> sessions;
   final List<AttendanceRecord> records;
   bool? createdRequiresLocation;
   int? createdDurationMinutes;
   String? closedSessionId;
+  int watchCurrentStudentRecordsCallCount = 0;
+  int watchLecturerSessionsCallCount = 0;
+  int watchRecordsForSessionCallCount = 0;
 
   @override
   Future<AttendanceSession> createSession({
@@ -962,17 +1498,20 @@ class _FakeAttendanceService implements AttendanceService {
 
   @override
   Stream<List<AttendanceRecord>> watchRecordsForSession(String sessionId) {
+    watchRecordsForSessionCallCount++;
     return Stream.value(records);
   }
 
   @override
   Stream<List<AttendanceRecord>> watchCurrentStudentRecords() {
+    watchCurrentStudentRecordsCallCount++;
     return Stream.value(records);
   }
 
   @override
   Stream<List<AttendanceSession>> watchLecturerSessions() {
-    return Stream.value(session == null ? [] : [session!]);
+    watchLecturerSessionsCallCount++;
+    return Stream.value(sessions);
   }
 }
 

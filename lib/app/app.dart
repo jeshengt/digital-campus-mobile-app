@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../features/notifications/widgets/notification_foreground_listener.dart';
 import 'routes/app_routes.dart';
 import 'theme/app_theme.dart';
 
@@ -37,10 +38,16 @@ class UtmGoApp extends StatelessWidget {
               : Brightness.dark,
         );
 
-        return AnnotatedRegion<SystemUiOverlayStyle>(
+        final appContent = AnnotatedRegion<SystemUiOverlayStyle>(
           value: overlayStyle,
           child: child ?? const SizedBox.shrink(),
         );
+
+        if (!isFirebaseReady) {
+          return appContent;
+        }
+
+        return NotificationForegroundListener(child: appContent);
       },
       initialRoute: isFirebaseReady
           ? AppRoutes.splash
