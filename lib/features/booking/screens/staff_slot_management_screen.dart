@@ -292,6 +292,7 @@ class _StaffSlotManagementScreenState extends State<StaffSlotManagementScreen> {
                           const SizedBox(height: AppDimensions.spacingMedium),
                         DropdownButtonFormField<String>(
                           key: const Key('slotFacilityDropdown'),
+                          isExpanded: true,
                           initialValue: selectedFacility.facilityId,
                           decoration: const InputDecoration(
                             labelText: 'Facility',
@@ -305,6 +306,8 @@ class _StaffSlotManagementScreenState extends State<StaffSlotManagementScreen> {
                                           selectedFacility.facilityId
                                       ? '${facility.name} (Selected)'
                                       : facility.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                           ],

@@ -101,10 +101,7 @@ void main() {
       await tester.pump();
 
       expect(find.text('No notifications yet'), findsOneWidget);
-      expect(
-        find.text('Your notifications will appear here.'),
-        findsOneWidget,
-      );
+      expect(find.text('Your notifications will appear here.'), findsOneWidget);
     });
 
     testWidgets('notifications screen marks booking notification read on tap', (
@@ -118,8 +115,8 @@ void main() {
         MaterialApp(
           theme: AppTheme.light,
           routes: {
-            AppRoutes.studentFacilityBooking: (_) =>
-                const Scaffold(body: Text('Student booking route opened')),
+            AppRoutes.studentMyBookings: (_) =>
+                const Scaffold(body: Text('My bookings route opened')),
           },
           home: NotificationsScreen(notificationService: service),
         ),
@@ -130,7 +127,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(service.readNotificationIds, ['notification-1']);
-      expect(find.text('Student booking route opened'), findsOneWidget);
+      expect(find.text('My bookings route opened'), findsOneWidget);
     });
 
     testWidgets('foreground listener shows alert for new unread notification', (

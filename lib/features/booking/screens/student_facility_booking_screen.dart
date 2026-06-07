@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../app/routes/app_routes.dart';
 import '../../../core/constants/app_dimensions.dart';
 import '../../../app/theme/app_theme.dart';
 import '../../../shared/layouts/utm_background_scaffold.dart';
 import '../../../shared/widgets/utm_feature_header.dart';
 import '../../../shared/widgets/utm_top_app_bar.dart';
 import '../models/facility.dart';
-import '../models/facility_booking.dart';
 import '../models/facility_slot_capacity.dart';
 import '../models/facility_slot_occurrence.dart';
 import '../models/facility_slot_reservation.dart';
@@ -45,7 +45,6 @@ class _StudentFacilityBookingScreenState
     extends State<StudentFacilityBookingScreen> {
   late final FacilityBookingService _facilityBookingService;
   late final Stream<List<Facility>> _availableFacilitiesStream;
-  late final Stream<List<FacilityBooking>> _studentBookingsStream;
   final TextEditingController _facilitySearchController =
       TextEditingController();
   String _facilitySearchQuery = '';
@@ -62,8 +61,6 @@ class _StudentFacilityBookingScreenState
         widget._facilityBookingService ?? FirebaseFacilityBookingService();
     _availableFacilitiesStream = _facilityBookingService
         .watchAvailableFacilities();
-    _studentBookingsStream = _facilityBookingService
-        .watchCurrentStudentBookings();
   }
 
   @override
@@ -113,139 +110,107 @@ class _StudentFacilityBookingScreenState
                 final filteredFacilities = _filteredFacilities(facilities);
                 final hasActiveFacilityFilters = _hasActiveFacilityFilters;
 
-                return StreamBuilder<List<FacilityBooking>>(
-                  stream: _studentBookingsStream,
-                  builder: (context, bookingSnapshot) {
-                    if (bookingSnapshot.connectionState ==
-                            ConnectionState.waiting &&
-                        !bookingSnapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    if (bookingSnapshot.hasError) {
-                      return _BookingMessageState(
-                        icon: Icons.error_outline_rounded,
-                        title: 'Could not load bookings',
-                        message: bookingSnapshot.error.toString(),
-                      );
-                    }
-
-                    final bookings =
-                        bookingSnapshot.data ?? const <FacilityBooking>[];
-
-                    return ListView(
-                      padding: const EdgeInsets.all(AppDimensions.spacingLarge),
-                      children: [
-                        _StudentBookingHeader(
-                          facilityCount: facilities.length,
-                          bookingCount: bookings.length,
-                        ),
-                        const SizedBox(height: AppDimensions.spacingLarge),
-                        _StudentFacilityFilterConsole(
-                          searchController: _facilitySearchController,
-                          facilityTypes: facilityTypes,
-                          facilityLocations: facilityLocations,
-                          selectedType: _selectedFacilityType,
-                          selectedLocation: _selectedFacilityLocation,
-                          sortOption: _facilitySortOption,
-                          visibleCount: filteredFacilities.length,
-                          totalCount: facilities.length,
-                          hasActiveFilters: hasActiveFacilityFilters,
-                          isExpanded: _isFacilityFilterExpanded,
-                          onSearchChanged: (query) {
-                            setState(() {
-                              _facilitySearchQuery = query;
-                            });
-                          },
-                          onTypeChanged: (type) {
-                            setState(() {
-                              _selectedFacilityType = type?.isEmpty == true
-                                  ? null
-                                  : type;
-                            });
-                          },
-                          onLocationChanged: (location) {
-                            setState(() {
-                              _selectedFacilityLocation =
-                                  location?.isEmpty == true ? null : location;
-                            });
-                          },
-                          onSortChanged: (sortOption) {
-                            setState(() {
-                              _facilitySortOption = sortOption;
-                            });
-                          },
-                          onToggleExpanded: () {
-                            setState(() {
-                              _isFacilityFilterExpanded =
-                                  !_isFacilityFilterExpanded;
-                            });
-                          },
-                          onClearFilters: _clearFacilityFilters,
-                        ),
-                        const SizedBox(height: AppDimensions.spacingMedium),
-                        if (facilities.isEmpty)
-                          const _BookingMessageCard(
-                            icon: Icons.meeting_room_outlined,
-                            title: 'No facilities yet',
-                            message:
-                                'Available facilities will appear after an admin adds them.',
-                          )
-                        else if (filteredFacilities.isEmpty)
-                          _BookingMessageCard(
-                            icon: Icons.filter_alt_off_outlined,
-                            title: 'No matching facilities',
-                            message:
-                                'Try another facility name, type or location.',
-                            action: TextButton.icon(
-                              key: const Key(
-                                'studentFacilityClearFilteredEmpty',
+                return ListView(
+                  padding: const EdgeInsets.all(AppDimensions.spacingLarge),
+                  children: [
+                    _StudentBookingHeader(facilityCount: facilities.length),
+                    const SizedBox(height: AppDimensions.spacingMedium),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        return Center(
+                          child: SizedBox(
+                            width: constraints.maxWidth > 320
+                                ? 320
+                                : constraints.maxWidth,
+                            child: OutlinedButton.icon(
+                              key: const Key('studentMyBookingsButton'),
+                              onPressed: () => Navigator.pushNamed(
+                                context,
+                                AppRoutes.studentMyBookings,
                               ),
-                              onPressed: _clearFacilityFilters,
-                              icon: const Icon(Icons.refresh_rounded),
-                              label: const Text('Clear filters'),
+                              icon: const Icon(Icons.event_note_outlined),
+                              label: const Text('My bookings'),
                             ),
-                          )
-                        else
-                          for (final facility in filteredFacilities)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: AppDimensions.spacingMedium,
-                              ),
-                              child: _FacilityTile(
-                                facility: facility,
-                                onBook: () => _showBookingSheet(facility),
-                              ),
-                            ),
-                        const SizedBox(height: AppDimensions.spacingLarge),
-                        Text(
-                          'My bookings',
-                          style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: AppDimensions.spacingLarge),
+                    _StudentFacilityFilterConsole(
+                      searchController: _facilitySearchController,
+                      facilityTypes: facilityTypes,
+                      facilityLocations: facilityLocations,
+                      selectedType: _selectedFacilityType,
+                      selectedLocation: _selectedFacilityLocation,
+                      sortOption: _facilitySortOption,
+                      visibleCount: filteredFacilities.length,
+                      totalCount: facilities.length,
+                      hasActiveFilters: hasActiveFacilityFilters,
+                      isExpanded: _isFacilityFilterExpanded,
+                      onSearchChanged: (query) {
+                        setState(() {
+                          _facilitySearchQuery = query;
+                        });
+                      },
+                      onTypeChanged: (type) {
+                        setState(() {
+                          _selectedFacilityType = type?.isEmpty == true
+                              ? null
+                              : type;
+                        });
+                      },
+                      onLocationChanged: (location) {
+                        setState(() {
+                          _selectedFacilityLocation = location?.isEmpty == true
+                              ? null
+                              : location;
+                        });
+                      },
+                      onSortChanged: (sortOption) {
+                        setState(() {
+                          _facilitySortOption = sortOption;
+                        });
+                      },
+                      onToggleExpanded: () {
+                        setState(() {
+                          _isFacilityFilterExpanded =
+                              !_isFacilityFilterExpanded;
+                        });
+                      },
+                      onClearFilters: _clearFacilityFilters,
+                    ),
+                    const SizedBox(height: AppDimensions.spacingMedium),
+                    if (facilities.isEmpty)
+                      const _BookingMessageCard(
+                        icon: Icons.meeting_room_outlined,
+                        title: 'No facilities yet',
+                        message:
+                            'Available facilities will appear after an admin adds them.',
+                      )
+                    else if (filteredFacilities.isEmpty)
+                      _BookingMessageCard(
+                        icon: Icons.filter_alt_off_outlined,
+                        title: 'No matching facilities',
+                        message: 'Try another facility name, type or location.',
+                        action: TextButton.icon(
+                          key: const Key('studentFacilityClearFilteredEmpty'),
+                          onPressed: _clearFacilityFilters,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Clear filters'),
                         ),
-                        const SizedBox(height: AppDimensions.spacingMedium),
-                        if (bookings.isEmpty)
-                          const _BookingMessageCard(
-                            icon: Icons.event_available_outlined,
-                            title: 'No bookings yet',
-                            message:
-                                'Your facility booking requests will appear here.',
-                          )
-                        else
-                          for (final booking in bookings)
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: AppDimensions.spacingMedium,
-                              ),
-                              child: _StudentBookingTile(
-                                booking: booking,
-                                onCancel: booking.status == bookingStatusPending
-                                    ? () => _cancelBooking(booking)
-                                    : null,
-                              ),
-                            ),
-                      ],
-                    );
-                  },
+                      )
+                    else
+                      for (final facility in filteredFacilities)
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            bottom: AppDimensions.spacingMedium,
+                          ),
+                          child: _FacilityTile(
+                            facility: facility,
+                            onBook: () => _showBookingSheet(facility),
+                          ),
+                        ),
+                  ],
                 );
               },
             ),
@@ -374,15 +339,6 @@ class _StudentFacilityBookingScreenState
 
     if (saved == true) {
       _showSnack('Booking request submitted.');
-    }
-  }
-
-  Future<void> _cancelBooking(FacilityBooking booking) async {
-    try {
-      await _facilityBookingService.cancelStudentBooking(booking);
-      _showSnack('Booking cancelled.');
-    } catch (error) {
-      _showSnack(error.toString());
     }
   }
 
@@ -818,21 +774,16 @@ class _SlotPicker extends StatelessWidget {
 }
 
 class _StudentBookingHeader extends StatelessWidget {
-  const _StudentBookingHeader({
-    required this.facilityCount,
-    required this.bookingCount,
-  });
+  const _StudentBookingHeader({required this.facilityCount});
 
   final int facilityCount;
-  final int bookingCount;
 
   @override
   Widget build(BuildContext context) {
     return UtmFeatureHeader(
       icon: Icons.meeting_room_outlined,
       title: 'Campus facilities',
-      subtitle:
-          '$facilityCount available - $bookingCount request${bookingCount == 1 ? '' : 's'}',
+      subtitle: '$facilityCount available',
     );
   }
 }
@@ -864,88 +815,6 @@ class _FacilityTile extends StatelessWidget {
           onPressed: onBook,
           child: const Text('Book'),
         ),
-      ),
-    );
-  }
-}
-
-class _StudentBookingTile extends StatelessWidget {
-  const _StudentBookingTile({required this.booking, required this.onCancel});
-
-  final FacilityBooking booking;
-  final VoidCallback? onCancel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(AppDimensions.spacingMedium),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    booking.facilityName,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                _BookingStatusChip(status: booking.status),
-              ],
-            ),
-            const SizedBox(height: AppDimensions.spacingSmall),
-            Text(
-              '${formatBookingDate(booking.requestedDate)} - ${formatBookingTimeRange(booking.startTime, booking.endTime)}',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            if (onCancel != null) ...[
-              const SizedBox(height: AppDimensions.spacingMedium),
-              Align(
-                alignment: Alignment.centerRight,
-                child: OutlinedButton.icon(
-                  key: Key('cancelStudentBooking_${booking.bookingId}'),
-                  onPressed: onCancel,
-                  icon: const Icon(Icons.cancel_outlined),
-                  label: const Text('Cancel'),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BookingStatusChip extends StatelessWidget {
-  const _BookingStatusChip({required this.status});
-
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = UtmThemeColors.of(context);
-    final color = switch (status) {
-      bookingStatusApproved => colors.success,
-      bookingStatusCancelled => colors.textTertiary,
-      _ => colors.warning,
-    };
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppDimensions.spacingSmall,
-        vertical: AppDimensions.spacingTiny,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        status,
-        style: Theme.of(
-          context,
-        ).textTheme.labelLarge?.copyWith(color: color, fontSize: 11),
       ),
     );
   }

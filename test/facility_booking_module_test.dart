@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:utmgo/app/routes/app_routes.dart';
@@ -14,6 +16,7 @@ import 'package:utmgo/features/booking/screens/admin_facility_management_screen.
 import 'package:utmgo/features/booking/screens/staff_booking_review_screen.dart';
 import 'package:utmgo/features/booking/screens/staff_slot_management_screen.dart';
 import 'package:utmgo/features/booking/screens/student_facility_booking_screen.dart';
+import 'package:utmgo/features/booking/screens/student_my_bookings_screen.dart';
 import 'package:utmgo/features/booking/services/facility_booking_service.dart';
 import 'package:utmgo/features/booking/services/staff_booking_review_preferences.dart';
 import 'package:utmgo/features/booking/utils/booking_validation.dart';
@@ -493,6 +496,7 @@ void main() {
       final routes = AppRoutes.routes(isFirebaseReady: true);
 
       expect(routes.containsKey(AppRoutes.studentFacilityBooking), isTrue);
+      expect(routes.containsKey(AppRoutes.studentMyBookings), isTrue);
       expect(routes.containsKey(AppRoutes.staffBookingReview), isTrue);
       expect(routes.containsKey(AppRoutes.staffSlotManagement), isTrue);
       expect(routes.containsKey(AppRoutes.adminFacilityManagement), isTrue);
@@ -580,10 +584,47 @@ void main() {
       expect(find.text('Facility management route opened'), findsOneWidget);
     });
 
-    testWidgets('student booking screen shows empty states', (tester) async {
+    testWidgets('student facility screen shows facilities only', (
+      tester,
+    ) async {
+      final service = _FakeFacilityBookingService(
+        studentBookings: [_sampleBooking()],
+      );
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
+          home: StudentFacilityBookingScreen(facilityBookingService: service),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('No facilities yet'), findsOneWidget);
+      final myBookingsButton = find.byKey(const Key('studentMyBookingsButton'));
+      expect(myBookingsButton, findsOneWidget);
+      expect(tester.getSize(myBookingsButton).width, 320);
+      expect(
+        tester.getCenter(myBookingsButton).dx,
+        tester.getCenter(find.byType(ListView)).dx,
+      );
+      expect(find.text('No bookings yet'), findsNothing);
+      expect(
+        find.byKey(const Key('cancelStudentBooking_booking-1')),
+        findsNothing,
+      );
+      expect(service.watchCurrentStudentBookingsCallCount, 0);
+    });
+
+    testWidgets('student facility screen opens my bookings route', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          routes: {
+            AppRoutes.studentMyBookings: (_) =>
+                const Scaffold(body: Text('My bookings route opened')),
+          },
           home: StudentFacilityBookingScreen(
             facilityBookingService: _FakeFacilityBookingService(),
           ),
@@ -591,14 +632,10 @@ void main() {
       );
 
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('studentMyBookingsButton')));
+      await tester.pumpAndSettle();
 
-      expect(find.text('No facilities yet'), findsOneWidget);
-      await tester.scrollUntilVisible(
-        find.text('No bookings yet'),
-        160,
-        scrollable: find.byType(Scrollable).first,
-      );
-      expect(find.text('No bookings yet'), findsOneWidget);
+      expect(find.text('My bookings route opened'), findsOneWidget);
     });
 
     testWidgets('student facility search is visible and filters start hidden', (
@@ -683,7 +720,7 @@ void main() {
       expect(find.text('1 of 2'), findsOneWidget);
       expect(tester.testTextInput.isVisible, isTrue);
       expect(service.watchAvailableFacilitiesCallCount, 1);
-      expect(service.watchCurrentStudentBookingsCallCount, 1);
+      expect(service.watchCurrentStudentBookingsCallCount, 0);
     });
 
     testWidgets(
@@ -970,43 +1007,94 @@ void main() {
       expect(find.text('0 of 1'), findsOneWidget);
     });
 
-    testWidgets('student booking screen shows own booking states', (
-      tester,
-    ) async {
+    testWidgets('student my bookings screen shows empty state', (tester) async {
+      final service = _FakeFacilityBookingService();
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
-          home: StudentFacilityBookingScreen(
-            facilityBookingService: _FakeFacilityBookingService(
-              facilities: [_sampleFacility()],
-              studentBookings: [
-                _sampleBooking(),
-                _sampleBooking(
-                  bookingId: 'booking-2',
-                  status: bookingStatusApproved,
-                ),
-                _sampleBooking(
-                  bookingId: 'booking-3',
-                  status: bookingStatusCancelled,
-                ),
-              ],
-            ),
-          ),
+          home: StudentMyBookingsScreen(facilityBookingService: service),
         ),
       );
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Seminar Room A'), findsWidgets);
+      expect(find.text('No bookings yet'), findsOneWidget);
+      expect(service.watchCurrentStudentBookingsCallCount, 1);
+      expect(service.watchAvailableFacilitiesCallCount, 0);
+    });
+
+    testWidgets('student my bookings screen shows loading and error states', (
+      tester,
+    ) async {
+      final controller = StreamController<List<FacilityBooking>>();
+      addTearDown(controller.close);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StudentMyBookingsScreen(
+            facilityBookingService: _FakeFacilityBookingService(
+              studentBookingsStream: controller.stream,
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      controller.addError(const AppException('Booking stream failed.'));
+      await tester.pump();
+
+      expect(find.text('Could not load bookings'), findsOneWidget);
+      expect(find.text('Booking stream failed.'), findsOneWidget);
+    });
+
+    testWidgets('student my bookings screen shows states and cancels pending', (
+      tester,
+    ) async {
+      final service = _FakeFacilityBookingService(
+        studentBookings: [
+          _sampleBooking(),
+          _sampleBooking(bookingId: 'booking-2', status: bookingStatusApproved),
+          _sampleBooking(
+            bookingId: 'booking-3',
+            status: bookingStatusCancelled,
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: StudentMyBookingsScreen(facilityBookingService: service),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Seminar Room A'), findsNWidgets(3));
       expect(find.text(bookingStatusPending), findsOneWidget);
       expect(
         find.byKey(const Key('cancelStudentBooking_booking-1')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const Key('cancelStudentBooking_booking-2')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('cancelStudentBooking_booking-3')),
+        findsNothing,
+      );
       await tester.drag(find.byType(ListView), const Offset(0, -500));
       await tester.pumpAndSettle();
       expect(find.text(bookingStatusApproved), findsOneWidget);
       expect(find.text(bookingStatusCancelled), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('cancelStudentBooking_booking-1')));
+      await tester.pump();
+
+      expect(service.cancelledBookingIds, ['booking-1']);
+      expect(find.text('Booking cancelled.'), findsOneWidget);
     });
 
     testWidgets('student booking flow shows staff-provided slots only', (
@@ -2735,6 +2823,7 @@ class _FakeFacilityBookingService implements FacilityBookingService {
   _FakeFacilityBookingService({
     this.facilities = const <Facility>[],
     this.studentBookings = const <FacilityBooking>[],
+    this.studentBookingsStream,
     this.reviewBookings = const <FacilityBooking>[],
     this.slotTemplates = const <FacilitySlotTemplate>[],
     this.reservations = const <FacilitySlotReservation>[],
@@ -2744,6 +2833,7 @@ class _FakeFacilityBookingService implements FacilityBookingService {
 
   final List<Facility> facilities;
   final List<FacilityBooking> studentBookings;
+  final Stream<List<FacilityBooking>>? studentBookingsStream;
   final List<FacilityBooking> reviewBookings;
   final List<FacilitySlotTemplate> slotTemplates;
   final List<FacilitySlotReservation> reservations;
@@ -2777,7 +2867,7 @@ class _FakeFacilityBookingService implements FacilityBookingService {
   @override
   Stream<List<FacilityBooking>> watchCurrentStudentBookings() {
     watchCurrentStudentBookingsCallCount++;
-    return Stream.value(studentBookings);
+    return studentBookingsStream ?? Stream.value(studentBookings);
   }
 
   @override

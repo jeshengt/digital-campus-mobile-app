@@ -18,6 +18,7 @@ import '../../features/booking/screens/admin_facility_management_screen.dart';
 import '../../features/booking/screens/staff_booking_review_screen.dart';
 import '../../features/booking/screens/staff_slot_management_screen.dart';
 import '../../features/booking/screens/student_facility_booking_screen.dart';
+import '../../features/booking/screens/student_my_bookings_screen.dart';
 import '../../features/bus_tracking/screens/admin_bus_management_screen.dart';
 import '../../features/bus_tracking/screens/bus_tracking_map_screen.dart';
 import '../../features/bus_tracking/screens/driver_bus_broadcast_screen.dart';
@@ -55,6 +56,7 @@ class AppRoutes {
   static const driverBusBroadcast = '/bus-tracking/driver/broadcast';
   static const adminBusManagement = '/bus-tracking/admin/manage';
   static const studentFacilityBooking = '/booking/student';
+  static const studentMyBookings = '/booking/student/mine';
   static const staffBookingReview = '/booking/staff/review';
   static const staffSlotManagement = '/booking/staff/slots';
   static const adminFacilityManagement = '/booking/admin/facilities';
@@ -91,6 +93,7 @@ class AppRoutes {
       driverBusBroadcast: (_) => const DriverBusBroadcastScreen(),
       adminBusManagement: (_) => const AdminBusManagementScreen(),
       studentFacilityBooking: (_) => const StudentFacilityBookingScreen(),
+      studentMyBookings: (_) => const StudentMyBookingsScreen(),
       staffBookingReview: (_) => const StaffBookingReviewScreen(),
       staffSlotManagement: (_) => const StaffSlotManagementScreen(),
       adminFacilityManagement: (_) => const AdminFacilityManagementScreen(),

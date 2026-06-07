@@ -112,7 +112,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
 
     if (notification.type == notificationTypeFacilityBookingStatus) {
-      Navigator.pushNamed(context, AppRoutes.studentFacilityBooking);
+      Navigator.pushNamed(context, AppRoutes.studentMyBookings);
     }
   }
 }
