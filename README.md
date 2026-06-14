@@ -10,7 +10,6 @@
   [Open Web App](https://utmgooo.web.app) · [Download Android APK](https://drive.google.com/drive/folders/1jMqnA0l7Oc93-4vQ--axDXp2Q7FAF0nB?usp=sharing)
 </div>
 
-> [!NOTE]
 > UTM Go is an independent student project created for Universiti Teknologi Malaysia campus workflows. It is not an official UTM application or service.
 
 ## Overview
@@ -142,6 +141,12 @@ flutter test
 ```
 
 ## Documentation
+
+Access the complete project documentation through Google Drive:
+
+**[View Project Documentation](https://drive.google.com/drive/folders/1whydMZ_gsGRzz2GoWTmuJetGu1zOFL5c?usp=sharing)**
+
+Additional technical documentation:
 
 - [Firebase Local Setup](docs/firebase_local_setup.md)
 - [Firebase Data Model Plan](docs/firebase_data_model_plan.md)
